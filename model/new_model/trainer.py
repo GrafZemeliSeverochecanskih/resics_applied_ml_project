@@ -1,6 +1,9 @@
 from new_model import *
 from torch.optim import * 
 from tqdm import tqdm
+from torch import nn
+import torch
+from new_model.new_model import NewResNet50Model
 
 class Trainer:
     """This class implements all functions needed for training a modified

@@ -1,4 +1,4 @@
-from abstract_model import AbstractModel
+from abstract.abstract_model import AbstractModel
 import torch
 import torchvision
 from torchinfo import summary
@@ -79,14 +79,13 @@ class NewResNet50Model(AbstractModel):
     @property
     def model_summary(self):
         """This method provides the summary of the model."""
-        print(summary(model=self.__model, 
+        return summary(model=self.__model, 
                 input_size=(32, 3, 224, 224),
                 # col_names=["input_size"],
                 col_names=["input_size", "output_size", "num_params", "trainable"],
                 col_width=20,
                 row_settings=["var_names"]
-        ))
-        return None
+        )
     
     @property
     def weights(self):

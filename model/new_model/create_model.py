@@ -1,7 +1,7 @@
 from pathlib import Path
 from utils.data_handler import DataHandler
-from new_model import NewResNet50Model
-from trainer import Trainer
+from new_model.new_model import NewResNet50Model
+from new_model.trainer import Trainer
 from utils.mc_dropout import MonteCarloDropout
 from utils.plot_creator import PlotCreator
 
@@ -32,6 +32,7 @@ class CreateNewModel:
         self.__model = self.__initializeModel()
         self.__trainer = self.__initializeTrainer()
         self.__results = self.__trainer.run()
+        
         if monte_carlo_inference:
             self.__mc = self.__initializeMonteCarloDropout()
             if self.__mc:
