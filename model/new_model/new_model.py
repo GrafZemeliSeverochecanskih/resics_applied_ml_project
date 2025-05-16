@@ -96,4 +96,5 @@ class NewResNet50Model(AbstractModel):
     @property
     def model(self):
         """This is a getter for the model."""
-        return self.__model    
+        return self.__model
+     
