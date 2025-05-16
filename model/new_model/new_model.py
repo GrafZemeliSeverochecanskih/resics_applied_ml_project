@@ -5,14 +5,19 @@ from torchinfo import summary
 from torch import nn
 
 class NewResNet50Model(AbstractModel):
+    """This class allows user to create new model basing on the 
+        ResNet-50 architecture. User is able to select what layers to unfreeze and select the 
+        rate of dropout.
+
+    Args:
+        AbstractModel (_type_): abstract model.
+    """
     def __init__(self, 
                  dropout_rate: float = 0.5,
                  unfreeze_specific_blocks: list[str] = None,
                  unfreeze_classifier: bool = True
                  ):
-        """This class allows user to create new model basing on the 
-        ResNet-50 architecture. User is able to select what layers to unfreeze and select the 
-        rate of dropout.
+        """This is NewResNet50Model class constructor.
 
         Args:
             dropout_rate (float, optional): dropout rate. Defaults to 0.5.
@@ -33,7 +38,7 @@ class NewResNet50Model(AbstractModel):
         self.__modify_last_layer()
 
     def __freeze_layers(self):
-        """This method freezes the layers, in case user does not want to trani model"""
+        """This method freezes the layers, in case user does not want to trani model."""
         for param in self.__model.parameters():
             param.requires_grad = False
 
@@ -48,7 +53,7 @@ class NewResNet50Model(AbstractModel):
                           f"{[name for name, _ in self.__model.named_children()]}")
 
     def __modify_last_layer(self):
-        """This method modifies last layers of ResNet-50 architecture"""
+        """This method modifies last layers of ResNet-50 architecture."""
         num_ftrs = self.__model.fc.in_features
         
         new_classifier = nn.Sequential(
@@ -68,12 +73,12 @@ class NewResNet50Model(AbstractModel):
                 param.requires_grad = False
 
     def forward(self, x):
-        """This is the forward pass of the model"""
+        """This is the forward pass of the model."""
         return self.__model(x)
     
     @property
     def model_summary(self):
-        """This method provides the summary of the model"""
+        """This method provides the summary of the model."""
         print(summary(model=self.__model, 
                 input_size=(32, 3, 224, 224),
                 # col_names=["input_size"],
@@ -85,10 +90,10 @@ class NewResNet50Model(AbstractModel):
     
     @property
     def weights(self):
-        """This is a getter for weights"""
+        """This is a getter for weights."""
         return self.__weights_transformed
     
     @property
     def model(self):
-        """This is a getter for the model"""
+        """This is a getter for the model."""
         return self.__model    
