@@ -8,7 +8,7 @@ class AbstractModel(torch.nn.Module):
         https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html
     """
     def __init__(self):
-        """This is AbstractModel class constructor."""
+        """This is the AbstractModel class constructor."""
         super().__init__()
         self._device = "cuda" if torch.cuda.is_available() else "cpu"
 
