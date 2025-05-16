@@ -17,7 +17,7 @@ class NewResNet50Model(AbstractModel):
                  unfreeze_specific_blocks: list[str] = None,
                  unfreeze_classifier: bool = True
                  ):
-        """This is NewResNet50Model class constructor.
+        """This is the NewResNet50Model class constructor.
 
         Args:
             dropout_rate (float, optional): dropout rate. Defaults to 0.5.
