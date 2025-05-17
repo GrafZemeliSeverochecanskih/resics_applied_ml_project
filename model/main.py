@@ -2,9 +2,9 @@ from new_model.create_new_model import CreateNewModel
 
 if __name__ == "__main__":
     model_creator = CreateNewModel(
-        epochs=2,
+        epochs=1,
+        output_dir="D:\\project_images\\resics_applied_ml_project\\model\\weights",
         image_path="D:\\Study\\resics_applied_ml_project\\splitted_data",
-        monte_carlo_inference = False,
         unfreeze_specific_blocks = ["layer4"]
         )
     if model_creator.plot_creator and model_creator.results:

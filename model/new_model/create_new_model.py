@@ -4,6 +4,8 @@ from new_model.resnet50_custom_model import ResNet50CustomModel
 from new_model.trainer import Trainer
 from utils.mc_dropout import MonteCarloDropout
 from utils.plot_creator import PlotCreator
+import os
+import torch
 
 class CreateNewModel:
     """This class interconnects different blocks n order to create and
@@ -11,18 +13,20 @@ class CreateNewModel:
     """
     def __init__(self,
                  image_path: str,
+                 output_dir: str,
+                 filename: str = "resnet_50_custom_model_weights",
                  train: str = "train/",
                  test: str = "test/",
                  epochs: int = 10,
-                 num_samples_mc = 10,
                  unfreeze_classifier=True,
-                 unfreeze_specific_blocks=None,
-                 monte_carlo_inference = True
+                 unfreeze_specific_blocks=None
                  ):
         """This is CreateNewModel class constructor."""
         self.__image_path = Path(image_path)
         self.__train_dir = self.__image_path / train
         self.__test_dir = self.__image_path / test
+        self.__output_dir = Path(output_dir)
+        self.__filename = filename + ".pth"
         self.__epochs = epochs
         self.__unfreeze_classifier = unfreeze_classifier
         self.__unfreeze_specific_blocks = unfreeze_specific_blocks
@@ -33,11 +37,8 @@ class CreateNewModel:
         self.__trainer = self.__initializeTrainer()
         self.__results = self.__trainer.run()
         
-        if monte_carlo_inference:
-            self.__mc = self.__initializeMonteCarloDropout()
-            if self.__mc:
-                self.__mc.run()
         self.__plots = self.__initializePLotCreator()
+        self.__save_model_weights()
 
     def __initializeDataHandler(self):
         """This function creates DataHandler class instance."""
@@ -68,22 +69,30 @@ class CreateNewModel:
             epochs=self.__epochs   
         )
         return trainer
-
-    def __initializeMonteCarloDropout(self):
-        """This function creates MonteCarloDroput class instance."""
-        mc = MonteCarloDropout(
-            model=self.__model, 
-            data_loader= self.__test_dataloader,
-            num_samples= self.__num_samples_mc
-            )
-        return mc
         
     def __initializePLotCreator(self):
         """This function creates PlotCreator class instance."""
         if self.__results:
             p = PlotCreator(self.__results)
             return p
-        
+        return None
+    
+    def __save_model_weights(self):
+        if self.__model is not None:
+            try:
+                os.makedirs(self.__output_dir, exist_ok=True)
+                model_save_path = self.__output_dir / self.__filename
+                torch.save(self.__model.state_dict(), model_save_path)
+            except AttributeError:
+                 print(f"AttributeError: Could not save model weights. \
+                       Ensure self.__model is a valid PyTorch nn.Module \
+                       and has state_dict method.")
+            except Exception as e:
+                print(f"Error saving model weights to \
+                       {model_save_path}: {e}")
+        else:
+            print("Model not initialized")
+
     @property
     def image_path(self):
         """This is a image path getter."""
@@ -143,14 +152,18 @@ class CreateNewModel:
     def results(self):
         """This is a results getter."""
         return self.__results
-    
-    @property
-    def mc(self):
-        """This is a mc dropout getter."""
-        return self.__mc
 
     @property
     def plot_creator(self):
         """This is a plot creator getter."""
         return self.__plots
     
+    @property
+    def output_dir(self):
+        """This is a output_dir getter."""
+        return self.__output_dir
+    
+    @property
+    def filename(self):
+        """This is a file name getter."""
+        return self.__filename

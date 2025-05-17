@@ -36,3 +36,6 @@ class UploadResNet50Model(AbstractModel):
         self.__model.to(self.__device)
         print(f"Model loaded successfully from '{weight_path}' onto '{self.__device}' and set to evaluation mode.")
     
+    @property
+    def model(self):
+        return self.__model
