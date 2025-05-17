@@ -1,7 +1,7 @@
 from abstract.abstract_model import AbstractModel
 import torch
 import torchvision
-from new_model.new_model import NewResNet50Model
+from resics_applied_ml_project.model.new_model.resnet50_custom_model import NewResNet50Model
 
 class UploadResNet50Model(AbstractModel):
     """This class is responsible for creating a ResNet-50 Base model basing 

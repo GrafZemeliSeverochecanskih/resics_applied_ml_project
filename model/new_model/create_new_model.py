@@ -1,6 +1,6 @@
 from pathlib import Path
 from utils.data_handler import DataHandler
-from new_model.new_model import NewResNet50Model
+from new_model.resnet50_custom_model import ResNet50CustomModel
 from new_model.trainer import Trainer
 from utils.mc_dropout import MonteCarloDropout
 from utils.plot_creator import PlotCreator
@@ -26,7 +26,7 @@ class CreateNewModel:
         self.__epochs = epochs
         self.__unfreeze_classifier = unfreeze_classifier
         self.__unfreeze_specific_blocks = unfreeze_specific_blocks
-        self.__num_samples_mc = num_samples_mc
+
         self.__train_dataloader, self.__test_dataloader, \
             self.__class_names = self.__initializeDataHandler()
         self.__model = self.__initializeModel()
@@ -52,8 +52,8 @@ class CreateNewModel:
 
 
     def __initializeModel(self):
-        """This function creates NewResNet50Model class instance."""
-        model = NewResNet50Model(
+        """This function creates ResNet50CustomModel class instance."""
+        model = ResNet50CustomModel(
             unfreeze_classifier=self.__unfreeze_classifier,
             unfreeze_specific_blocks=self.__unfreeze_specific_blocks
         )

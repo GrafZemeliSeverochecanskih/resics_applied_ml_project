@@ -36,7 +36,7 @@ class PlotCreator:
     
     def visualize_accuracy(self):
         """This function creates plots for accuracy."""
-        if self._results and all(k in self._results for k in ["train_loss", "test_loss", "train_acc", "test_acc"]):
+        if self.__results and all(k in self.__results for k in ["train_loss", "test_loss", "train_acc", "test_acc"]):
             plt.figure(figsize=(15, 7))
             plt.plot(self.__epochs, self.__accuracy, label="train_accuracy")
             plt.plot(self.__epochs, self.__test_accuracy, label="test_accuracy")

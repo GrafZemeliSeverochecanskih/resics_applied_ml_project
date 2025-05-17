@@ -1,9 +1,8 @@
-from new_model import *
 from torch.optim import * 
 from tqdm import tqdm
 from torch import nn
 import torch
-from new_model.new_model import NewResNet50Model
+from new_model.resnet50_custom_model import ResNet50CustomModel
 
 class Trainer:
     """This class implements all functions needed for training a modified
@@ -12,7 +11,7 @@ class Trainer:
         https://www.learnpytorch.io/05_pytorch_going_modular/
     """
     def __init__(self, 
-                 model: NewResNet50Model, 
+                 model: ResNet50CustomModel, 
                  train_dataloader: torch.utils.data.DataLoader,
                  test_dataloader: torch.utils.data.DataLoader,
                  loss_fn: torch.nn.Module = nn.CrossEntropyLoss(),
@@ -21,7 +20,7 @@ class Trainer:
                  ):
         """This is the Trainer class constructor.
         Args:
-            model (NewResNet50Model): a modified ResNet-50 architecture
+            model (ResNet50CustomModel): a modified ResNet-50 architecture
             train_dataloader (torch.utils.data.DataLoader): training data 
             loader
             test_dataloader (torch.utils.data.DataLoader): test data loader

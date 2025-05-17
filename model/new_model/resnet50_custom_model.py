@@ -4,7 +4,7 @@ import torchvision
 from torchinfo import summary
 from torch import nn
 
-class NewResNet50Model(AbstractModel):
+class ResNet50CustomModel(AbstractModel):
     """This class allows user to create new model basing on the 
         ResNet-50 architecture. User is able to select what layers to unfreeze and select the 
         rate of dropout.
@@ -17,7 +17,7 @@ class NewResNet50Model(AbstractModel):
                  unfreeze_specific_blocks: list[str] = None,
                  unfreeze_classifier: bool = True
                  ):
-        """This is the NewResNet50Model class constructor.
+        """This is the ResNet50CustomModel class constructor.
 
         Args:
             dropout_rate (float, optional): dropout rate. Defaults to 0.5.
