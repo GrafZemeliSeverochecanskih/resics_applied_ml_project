@@ -1,7 +1,7 @@
 from abstract.abstract_model import AbstractModel
 import torch
 import torchvision
-from resics_applied_ml_project.model.new_model.resnet50_custom_model import NewResNet50Model
+from new_model.resnet50_custom_model import ResNet50CustomModel
 
 class UploadResNet50Model(AbstractModel):
     """This class is responsible for creating a ResNet-50 Base model basing 
@@ -27,7 +27,8 @@ class UploadResNet50Model(AbstractModel):
             be unfreezed or not. Defaults to True.
         """
         super().__init__()
-        self.__model = NewResNet50Model(
+        self.__device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.__model = ResNet50CustomModel(
             dropout_rate=dropout_rate,
             unfreeze_specific_blocks = unfreeze_specific_blocks,
             unfreeze_classifier = unfreeze_classifier
