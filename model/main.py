@@ -1,17 +1,22 @@
 from new_model.create_new_model import CreateNewModel
 from upload_model.upload_model import UploadResNet50Model
+from utils.data_shuffler import DataShuffler
 import sys
 import io
 
 
 if __name__ == "__main__":
-    if sys.stdout.encoding != "utf-8":
-        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
-    uploader = UploadResNet50Model(
-        weight_path="resics_applied_ml_project\\model\\weights\\resnet_50_custom_model_weights.pth",
+    data_shuffler = DataShuffler(
+        directory_with_data = "D:\\Study\\resics_applied_ml_project\\data\\NWPU-RESISC45",
+        directory_with_new_data = "D:\\project_images\\resics_applied_ml_project\\model\\data"         
     )
-    uploader.model.model_summary
-    # model_creator = CreateNewModel(
+    # if sys.stdout.encoding != "utf-8":
+    #     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+    # uploader = UploadResNet50Model(
+    #     weight_path="resics_applied_ml_project\\model\\weights\\resnet_50_custom_model_weights.pth",
+    # )
+    # uploader.model.model_summary
+    # # model_creator = CreateNewModel(
     #     epochs=10,
     #     output_dir="D:\\project_images\\resics_applied_ml_project\\model\\weights",
     #     image_path="D:\\Study\\resics_applied_ml_project\\splitted_data",
