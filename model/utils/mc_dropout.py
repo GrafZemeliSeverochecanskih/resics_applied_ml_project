@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+from typing import Tuple
 
 class MonteCarloDropout:
     """This class implements all needed functionality for MC Dropout.
@@ -107,3 +108,34 @@ class MonteCarloDropout:
     def overall_image_uncertainty(self):
         """This is a getter for overall uncertainty image."""
         return self.__overall_image_uncertainty
+    
+    def predict_single_image(self, image_tensor: torch.Tensor) -> Tuple[int, torch.Tensor, torch.Tensor]:
+        """
+        Performs MC Dropout on a single image.
+
+        Args:
+            image_tensor (torch.Tensor): A single image tensor of shape [3, H, W]
+
+        Returns:
+            predicted_class (int): Final predicted class index.
+            mean_probs (torch.Tensor): Mean softmax probabilities across MC samples.
+            uncertainty (torch.Tensor): Variance across MC samples (per class).
+        """
+        self.__model.eval()
+        self.__enable_dropout()
+        
+        image_tensor = image_tensor.unsqueeze(0).to(self.__device)
+        predictions = []
+
+        with torch.no_grad():
+            for _ in range(self.__num_samples):
+                output = self.__model(image_tensor)
+                predictions.append(torch.softmax(output, dim=1).cpu())
+
+        predictions = torch.stack(predictions)
+        mean_probs = predictions.mean(dim=0).squeeze()
+        uncertainty = predictions.var(dim=0).squeeze()
+        predicted_class = mean_probs.argmax().item()
+
+        return predicted_class, mean_probs, uncertainty
+

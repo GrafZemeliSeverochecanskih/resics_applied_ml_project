@@ -1,7 +1,9 @@
 from abstract.abstract_model import AbstractModel
 import torch
+from torch.utils.data import DataLoader, TensorDataset
 import torchvision
 from new_model.resnet50_custom_model import ResNet50CustomModel
+from utils.mc_dropout import MonteCarloDropout
 
 class UploadResNet50Model(AbstractModel):
     """This class is responsible for creating a ResNet-50 Base model basing 
@@ -40,3 +42,17 @@ class UploadResNet50Model(AbstractModel):
     @property
     def model(self):
         return self.__model
+    
+    def run_mc_dropout_single_image(self, image_tensor: torch.Tensor, num_samples: int = 30):
+        """
+        Run MC Dropout on a single image using the loaded model.
+
+        Args:
+            image_tensor (torch.Tensor): Preprocessed image tensor [3, 224, 224]
+            num_samples (int): Number of forward passes to perform
+
+        Returns:
+            Tuple[int, torch.Tensor, torch.Tensor]: predicted class index, mean probs, and uncertainty
+        """
+        mc_dropout = MonteCarloDropout(model=self.__model, data_loader=None, num_samples=num_samples)
+        return mc_dropout.predict_single_image(image_tensor)
