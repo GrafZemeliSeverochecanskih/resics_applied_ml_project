@@ -16,6 +16,7 @@ class CreateNewModel:
                  output_dir: str,
                  filename: str = "resnet_50_custom_model_weights",
                  train: str = "train/",
+                 val: str = "val/",
                  test: str = "test/",
                  epochs: int = 10,
                  unfreeze_classifier=True,
@@ -24,6 +25,7 @@ class CreateNewModel:
         """This is CreateNewModel class constructor."""
         self.__image_path = Path(image_path)
         self.__train_dir = self.__image_path / train
+        self.__val_dir = self.__image_path / val
         self.__test_dir = self.__image_path / test
         self.__output_dir = Path(output_dir)
         self.__filename = filename + ".pth"
@@ -32,7 +34,9 @@ class CreateNewModel:
         self.__unfreeze_specific_blocks = unfreeze_specific_blocks
 
         self.__train_dataloader, self.__test_dataloader, \
-            self.__class_names = self.__initializeDataHandler()
+            self.__val_dataloader , \
+                self.__class_names = self.__initializeDataHandler()
+        
         self.__model = self.__initializeModel()
         self.__trainer = self.__initializeTrainer()
         self.__results = self.__trainer.run()
@@ -44,12 +48,14 @@ class CreateNewModel:
         """This function creates DataHandler class instance."""
         datahandler = DataHandler(
             train_dir = str(self.__train_dir), 
+            val_dir=str(self.__val_dir),
             test_dir = str(self.__test_dir)
             )
         train = datahandler.train_dataloader
+        val = datahandler.val_dataloader
         test = datahandler.test_dataloader
         classes = datahandler.class_names
-        return train, test, classes
+        return train, val, test, classes
 
 
     def __initializeModel(self):
@@ -65,7 +71,7 @@ class CreateNewModel:
         trainer = Trainer(
             model=self.__model,
             train_dataloader=self.__train_dataloader,
-            test_dataloader=self.__test_dataloader,
+            val_dataloader=self.__val_dataloader,
             epochs=self.__epochs   
         )
         return trainer

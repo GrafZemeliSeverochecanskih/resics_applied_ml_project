@@ -10,7 +10,8 @@ class DataHandler:
         https://www.learnpytorch.io/05_pytorch_going_modular/
     """
     def __init__(self, 
-                 train_dir: str, 
+                 train_dir: str,
+                 val_dir: str, 
                  test_dir: str,
                  num_workers: int = os.cpu_count(),
                  batch_size: int = 32,
@@ -28,17 +29,22 @@ class DataHandler:
             to images. Defaults to None.
         """
         self.__train_dir = train_dir
+        self.__val_dir = val_dir
         self.__test_dir = test_dir
         self.__num_workers = num_workers
         self.__batch_size = batch_size
 
         if transform is None:
-            self.transform = self.__create_default_transform()
+            self.__transform = self.__create_default_transform()
 
-        self.__train_data = datasets.ImageFolder(self.__train_dir, transform = self.transform)
-        self.__test_data = datasets.ImageFolder(self.__test_dir, transform=self.transform)
+        self.__train_data = datasets.ImageFolder(self.__train_dir, transform = self.__transform)
+        self.__val_data = datasets.ImageFolder(self.__val_dir, transform=self.__transform)
+        self.__test_data = datasets.ImageFolder(self.__test_dir, transform=self.__transform)
+        
         self.__class_names = self.__train_data.classes
+        
         self.__train_dataloader = self.__create_dataloader(self.__train_data, shuffle=True)
+        self.__val_dataloader = self.__create_dataloader(self.__val_data)
         self.__test_dataloader = self.__create_dataloader(self.__test_data)
 
     def __create_default_transform(self) -> transforms.Compose:
@@ -72,6 +78,11 @@ class DataHandler:
         """This is a getter for train dataloader."""
         return self.__train_dataloader
 
+    @property
+    def val_dataloader(self) -> DataLoader:
+        """This is a getter for val dataloader."""
+        return self.__val_dataloader
+    
     @property
     def test_dataloader(self) -> DataLoader:
         """This is a getter for test dataloader."""
