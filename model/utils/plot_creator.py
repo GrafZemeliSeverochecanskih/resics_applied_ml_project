@@ -11,9 +11,9 @@ class PlotCreator:
         """
         self.__results = results
         self.__loss = results["train_loss"]
-        self.__test_loss = results["test_loss"]
+        self.__val_loss = results["val_loss"]
         self.__accuracy = results["train_acc"]
-        self.__test_accuracy = results["test_acc"]
+        self.__val_accuracy = results["val_acc"]
         self.__epochs = range(len(results["train_loss"]))
     
     def visualize_loss(self):
@@ -22,10 +22,10 @@ class PlotCreator:
         Returns:
             _type_: displays plots
         """
-        if self.__results and all(k in self.__results for k in ["train_loss", "test_loss", "train_acc", "test_acc"]):
+        if self.__results and all(k in self.__results for k in ["train_loss", "val_loss", "train_acc", "val_acc"]):
             plt.figure(figsize=(15, 7))
             plt.plot(self.__epochs, self.__loss, label="train_loss")
-            plt.plot(self.__epochs, self.__test_loss, label="test_loss")
+            plt.plot(self.__epochs, self.__val_loss, label="val_loss")
             plt.title("Loss")
             plt.xlabel("Epochs")
             plt.legend()
@@ -36,10 +36,10 @@ class PlotCreator:
     
     def visualize_accuracy(self):
         """This function creates plots for accuracy."""
-        if self.__results and all(k in self.__results for k in ["train_loss", "test_loss", "train_acc", "test_acc"]):
+        if self.__results and all(k in self.__results for k in ["train_loss", "val_loss", "train_acc", "val_acc"]):
             plt.figure(figsize=(15, 7))
             plt.plot(self.__epochs, self.__accuracy, label="train_accuracy")
-            plt.plot(self.__epochs, self.__test_accuracy, label="test_accuracy")
+            plt.plot(self.__epochs, self.__val_accuracy, label="val_accuracy")
             plt.title("Accuracy")
             plt.xlabel("Epochs")
             plt.legend()
@@ -59,9 +59,9 @@ class PlotCreator:
         return self.__loss
     
     @property
-    def test_loss(self):
-        """This is a getter for test loss values."""
-        return self.__test_loss
+    def val_loss(self):
+        """This is a getter for validation loss values."""
+        return self.__val_loss
     
     @property
     def accuracy(self):
@@ -69,9 +69,9 @@ class PlotCreator:
         return self.__accuracy
     
     @property
-    def test_accuracy(self):
-        """This is a getter for test accuracy."""
-        return self.__test_accuracy
+    def val_accuracy(self):
+        """This is a getter for validation accuracy."""
+        return self.__val_accuracy
     
     @property
     def epochs(self):

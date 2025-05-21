@@ -13,7 +13,7 @@ class Trainer:
     def __init__(self, 
                  model: ResNet50CustomModel, 
                  train_dataloader: torch.utils.data.DataLoader,
-                 test_dataloader: torch.utils.data.DataLoader,
+                 val_dataloader: torch.utils.data.DataLoader,
                  loss_fn: torch.nn.Module = nn.CrossEntropyLoss(),
                  learning_rate: int = 0.001,
                  epochs = 10
@@ -23,7 +23,8 @@ class Trainer:
             model (ResNet50CustomModel): a modified ResNet-50 architecture
             train_dataloader (torch.utils.data.DataLoader): training data 
             loader
-            test_dataloader (torch.utils.data.DataLoader): test data loader
+            val_dataloader (torch.utils.data.DataLoader): validation data 
+            loader
             loss_fn (torch.nn.Module, optional): loss function used during
             the trainig. Defaults to nn.CrossEntropyLoss().
             learning_rate (int, optional): learning rate. Defaults to 0.001.
@@ -38,7 +39,7 @@ class Trainer:
             )
         
         self.__train_dataloader = train_dataloader
-        self.__test_dataloader = test_dataloader
+        self.__val_dataloader = val_dataloader
         self.__loss_fn = loss_fn
         self.__epochs = epochs
     
@@ -60,39 +61,39 @@ class Trainer:
         train_acc = train_acc / len(self.__train_dataloader)
         return train_loss, train_acc
     
-    def __test_step(self):
-        """This function implements test step."""
+    def __val_step(self):
+        """This function implements valiadtion step."""
         self.__model.eval()
-        test_loss, test_acc = 0, 0
+        val_loss, val_acc = 0, 0
         with torch.inference_mode():
-            for batch, (X, y) in enumerate(self.__test_dataloader):
+            for batch, (X, y) in enumerate(self.__val_dataloader):
                 X, y = X.to(self.__device), y.to(self.__device)
-                test_pred_logits = self.__model(X)
-                loss = self.__loss_fn(test_pred_logits, y)
-                test_loss += loss.item()
-                test_pred_labels = test_pred_logits.argmax(dim=1)
-                test_acc += ((test_pred_labels == y).sum().item()/len(test_pred_labels))
-        test_loss = test_loss / len(self.__test_dataloader)
-        test_acc = test_acc / len(self.__test_dataloader)
-        return test_loss, test_acc
+                val_pred_logits = self.__model(X)
+                loss = self.__loss_fn(val_pred_logits, y)
+                val_loss += loss.item()
+                val_pred_labels = val_pred_logits.argmax(dim=1)
+                val_acc += ((val_pred_labels == y).sum().item()/len(val_pred_labels))
+        val_loss = val_loss / len(self.__val_dataloader)
+        val_acc = val_acc / len(self.__val_dataloader)
+        return val_loss, val_acc
     
     def run(self):
         """This function implements a trainer run"""
-        results = {"train_loss": [], "train_acc": [], "test_loss": [], "test_acc": []}
+        results = {"train_loss": [], "train_acc": [], "val_loss": [], "val_acc": []}
         self.__model.to(self.__device)
         for epoch in tqdm(range(self.__epochs)):
             train_loss, train_acc = self.__train_step()
-            test_loss, test_acc = self.__test_step()
+            val_loss, val_acc = self.__val_step()
             print(
                 f"Epoch: {epoch+1} | "
                 f"train_loss: {train_loss:.4f} | "
                 f"train_acc: {train_acc:.4f} | "
-                f"test_loss: {test_loss:.4f} | "
-                f"test_acc: {test_acc:.4f}"
+                f"val_loss: {val_loss:.4f} | "
+                f"val_acc: {val_acc:.4f}"
                 )
             results["train_loss"].append(train_loss)
             results["train_acc"].append(train_acc)
-            results["test_loss"].append(test_loss)
-            results["test_acc"].append(test_acc)
+            results["val_loss"].append(val_loss)
+            results["val_acc"].append(val_acc)
         return results    
     
