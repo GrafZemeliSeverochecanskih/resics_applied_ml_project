@@ -16,6 +16,7 @@ if __name__ == "__main__":
     #     weight_path="resics_applied_ml_project\\model\\weights\\resnet_50_custom_model_weights.pth",
     # )
     # uploader.model.model_summary
+
     model_creator = CreateNewModel(
         epochs=10,
         output_dir="D:\\project_images\\resics_applied_ml_project\\model\\weights",
@@ -36,3 +37,29 @@ if __name__ == "__main__":
 
     print("Process finished.")
     
+
+# THESE ARE UPADES MADE FOR THE FUNCTIONALITY OF THE SALIENCY MAP, PLEASE CHACK IF THEY WORK ON YOUR LAPTOP AS WELL
+
+from utils.saliency_utils import compute_saliency_map, visualize_saliency_map
+import torch
+
+# Example usage after loading model and validation/test data
+if __name__ == "__main__":
+    import torchvision.transforms as transforms
+    from torch.utils.data import DataLoader
+    from torchvision.datasets import CIFAR10
+
+    transform = transforms.Compose([
+        transforms.ToTensor()
+    ])
+
+    dataset = CIFAR10(root='./data', train=False, download=True, transform=transform)
+    loader = DataLoader(dataset, batch_size=1, shuffle=True)
+
+    # Get a sample input
+    sample_input, _ = next(iter(loader))
+    sample_input = sample_input.to(device)
+
+    # Run saliency map computation and visualization
+    saliency = compute_saliency_map(sample_input, model)
+    visualize_saliency_map(saliency, sample_input)
