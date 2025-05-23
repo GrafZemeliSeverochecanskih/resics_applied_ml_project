@@ -153,3 +153,11 @@ class ResNet50CustomModel(AbstractModel):
     def class_names(self):
         return self.__class_names
     
+    @property
+    def image_path(self):
+        return self.__image_path
+    
+    @property
+    def test_directory(self):
+        return self.__test_dir
+    
