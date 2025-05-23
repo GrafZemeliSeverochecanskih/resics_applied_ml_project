@@ -3,6 +3,8 @@ import torch
 import torchvision
 from torchinfo import summary
 from torch import nn
+from pathlib import Path
+from utils.data_handler import DataHandler
 
 class ResNet50CustomModel(AbstractModel):
     """This class allows user to create new model basing on the 
@@ -12,10 +14,14 @@ class ResNet50CustomModel(AbstractModel):
     Args:
         AbstractModel (_type_): abstract model.
     """
-    def __init__(self, 
+    def __init__(self,
+                 image_path: str,
                  dropout_rate: float = 0.5,
                  unfreeze_specific_blocks: list[str] = None,
-                 unfreeze_classifier: bool = True
+                 unfreeze_classifier: bool = True,
+                 train: str = "train/",
+                 val: str = "val/",
+                 test: str = "test/"
                  ):
         """This is the ResNet50CustomModel class constructor.
 
@@ -25,6 +31,16 @@ class ResNet50CustomModel(AbstractModel):
             unfreeze_classifier (bool, optional): whether unfreeze classifier or not. Defaults to True.
         """
         super().__init__()
+        
+        self.__image_path = Path(image_path)
+        self.__train_dir = self.__image_path / train
+        self.__val_dir = self.__image_path / val
+        self.__test_dir = self.__image_path / test
+
+        self.__train_dataloader, self.__test_dataloader, \
+            self.__val_dataloader , \
+                self.__class_names = self.__initializeDataHandler()
+        
         self.__device = "cuda" if torch.cuda.is_available() else "cpu"
         self.__unfreeze_classifier = unfreeze_classifier
         self.__unfreeze_specific_blocks = unfreeze_specific_blocks
@@ -36,6 +52,19 @@ class ResNet50CustomModel(AbstractModel):
         
         self.__freeze_layers()
         self.__modify_last_layer()
+
+    def __initializeDataHandler(self):
+        """This function creates DataHandler class instance."""
+        datahandler = DataHandler(
+            train_dir = str(self.__train_dir), 
+            val_dir=str(self.__val_dir),
+            test_dir = str(self.__test_dir)
+            )
+        train = datahandler.train_dataloader
+        val = datahandler.val_dataloader
+        test = datahandler.test_dataloader
+        classes = datahandler.class_names
+        return train, val, test, classes
 
     def __freeze_layers(self):
         """This method freezes the layers, in case user does not want to trani model."""
@@ -98,23 +127,24 @@ class ResNet50CustomModel(AbstractModel):
         return self.__model
 
     def evaluate_on_test_set(self, test_loader):
-    """Evaluates the model on the given test dataset and returns accuracy.
-    """
-    self.__model.eval()
-    correct = 0
-    total = 0
+        """Evaluates the model on the given test dataset and returns
+          accuracy.
+        """
+        self.__model.eval()
+        correct = 0
+        total = 0
 
-    with torch.no_grad():
-        for images, labels in test_loader:
-            images = images.to(self.__device)
-            labels = labels.to(self.__device)
+        with torch.no_grad():
+            for images, labels in self.__test_loader:
+                images = images.to(self.__device)
+                labels = labels.to(self.__device)
 
-            outputs = self.__model(images)
-            _, predicted = torch.max(outputs.data, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
+                outputs = self.__model(images)
+                _, predicted = torch.max(outputs.data, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
 
-    accuracy = 100 * correct / total
-    print(f"Accuracy on test set: {accuracy:.2f}%")
-    return accuracy
-     
+        accuracy = 100 * correct / total
+        print(f"Accuracy on test set: {accuracy:.2f}%")
+        return accuracy
+        

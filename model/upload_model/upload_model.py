@@ -40,3 +40,7 @@ class UploadResNet50Model(AbstractModel):
     @property
     def model(self):
         return self.__model
+    
+    @property
+    def test_accuracy_score(self):
+        return self.__model.evaluate_on_test_set()
