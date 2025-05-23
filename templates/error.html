@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Error</title>
+    <style>
+        body { 
+            font-family: sans-serif; 
+            background-color: #fff0f0; 
+            color: #d8000c; 
+            text-align: center; 
+            padding: 40px;
+        }
+        .error-box {
+            background-color: #ffd2d2;
+            border: 1px solid #d8000c;
+            border-radius: 8px;
+            padding: 20px;
+            max-width: 600px;
+            margin: auto;
+        }
+        h1 {
+            margin: 0;
+        }
+        code {
+            background-color: #f0f0f0;
+            color: #333;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-box">
+        <h1>An Error Occurred</h1>
+        <p>The application encountered a problem. Please see the details below.</p>
+        <p><strong>Details:</strong> <code>{{ detail }}</code></p>
+    </div>
+</body>
+</html>
