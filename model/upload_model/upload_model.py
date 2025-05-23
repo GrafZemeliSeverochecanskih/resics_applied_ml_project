@@ -1,7 +1,7 @@
-from abstract.abstract_model import AbstractModel
+from model.abstract.abstract_model import AbstractModel
 import torch
 import torchvision
-from new_model.resnet50_custom_model import ResNet50CustomModel
+from model.new_model.resnet50_custom_model import ResNet50CustomModel
 
 class UploadResNet50Model(AbstractModel):
     """This class is responsible for creating a ResNet-50 Base model basing 
@@ -15,7 +15,7 @@ class UploadResNet50Model(AbstractModel):
                  image_path: str,
                  dropout_rate: float = 0.5,
                  unfreeze_specific_blocks: list[str] = None,
-                 unfreeze_classifier: bool = True
+                 unfreeze_classifier: bool = False
                  ):
         """This is the UploadResNet50Model constructor.
 
@@ -36,7 +36,8 @@ class UploadResNet50Model(AbstractModel):
             unfreeze_classifier = unfreeze_classifier
         ) 
         self.__model.load_state_dict(torch.load(weight_path, 
-                                                map_location=torch.device(self.__device), ))
+                                                map_location=torch.device(self.__device), 
+                                                weights_only=False))
         self.__model.to(self.__device)
         print(f"Model loaded successfully from '{weight_path}' onto '{self.__device}' and set to evaluation mode.")
     
@@ -45,5 +46,14 @@ class UploadResNet50Model(AbstractModel):
         return self.__model
     
     @property
+    def summary(self):
+        return self.__model.model_summary
+    
+    @property
     def test_accuracy(self):
         return self.__model.test_accuracy
+    
+    @property
+    def class_names(self):
+        return sorted(self.__model.class_names)
+    

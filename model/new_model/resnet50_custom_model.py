@@ -1,10 +1,10 @@
-from abstract.abstract_model import AbstractModel
+from model.abstract.abstract_model import AbstractModel
 import torch
 import torchvision
 from torchinfo import summary
 from torch import nn
 from pathlib import Path
-from utils.data_handler import DataHandler
+from model.utils.data_handler import DataHandler
 
 class ResNet50CustomModel(AbstractModel):
     """This class allows user to create new model basing on the 
@@ -37,8 +37,8 @@ class ResNet50CustomModel(AbstractModel):
         self.__val_dir = self.__image_path / val
         self.__test_dir = self.__image_path / test
 
-        _, _, self.__test_dataloader , self.__class_names \
-            = self.__initializeDataHandler()
+        _, _, self.__test_dataloader , \
+            self.__class_names = self.__initializeDataHandler()
         
         self.__device = "cuda" if torch.cuda.is_available() else "cpu"
         self.__unfreeze_classifier = unfreeze_classifier
@@ -47,7 +47,9 @@ class ResNet50CustomModel(AbstractModel):
 
         weights_enum = torchvision.models.ResNet50_Weights.IMAGENET1K_V2
         self.__weights_transformed = weights_enum.transforms()
-        self.__model =  torchvision.models.resnet50(weights=weights_enum).to(self.__device)
+        self.__model = torchvision.models.resnet50(
+            weights=weights_enum
+            ).to(self.__device)
         
         self.__freeze_layers()
         self.__modify_last_layer()
@@ -145,6 +147,9 @@ class ResNet50CustomModel(AbstractModel):
                 correct += (predicted == labels).sum().item()
 
         test_accuracy = 100 * correct / total
-        print(f"Accuracy on test set: {test_accuracy:.2f}%")
+        return test_accuracy
         
-        
+    @property
+    def class_names(self):
+        return self.__class_names
+    
