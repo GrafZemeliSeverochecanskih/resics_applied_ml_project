@@ -12,6 +12,7 @@ class UploadResNet50Model(AbstractModel):
     """
     def __init__(self,
                  weight_path: str,
+                 image_path: str,
                  dropout_rate: float = 0.5,
                  unfreeze_specific_blocks: list[str] = None,
                  unfreeze_classifier: bool = True
@@ -29,11 +30,13 @@ class UploadResNet50Model(AbstractModel):
         super().__init__()
         self.__device = "cuda" if torch.cuda.is_available() else "cpu"
         self.__model = ResNet50CustomModel(
+            image_path,
             dropout_rate=dropout_rate,
             unfreeze_specific_blocks = unfreeze_specific_blocks,
             unfreeze_classifier = unfreeze_classifier
         ) 
-        self.__model.load_state_dict(torch.load(weight_path, map_location=torch.device(self.__device)))
+        self.__model.load_state_dict(torch.load(weight_path, 
+                                                map_location=torch.device(self.__device), ))
         self.__model.to(self.__device)
         print(f"Model loaded successfully from '{weight_path}' onto '{self.__device}' and set to evaluation mode.")
     
@@ -42,5 +45,5 @@ class UploadResNet50Model(AbstractModel):
         return self.__model
     
     @property
-    def test_accuracy_score(self):
-        return self.__model.evaluate_on_test_set()
+    def test_accuracy(self):
+        return self.__model.test_accuracy

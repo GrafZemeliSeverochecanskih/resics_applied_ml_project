@@ -37,9 +37,8 @@ class ResNet50CustomModel(AbstractModel):
         self.__val_dir = self.__image_path / val
         self.__test_dir = self.__image_path / test
 
-        self.__train_dataloader, self.__test_dataloader, \
-            self.__val_dataloader , \
-                self.__class_names = self.__initializeDataHandler()
+        _, _, self.__test_dataloader , self.__class_names \
+            = self.__initializeDataHandler()
         
         self.__device = "cuda" if torch.cuda.is_available() else "cpu"
         self.__unfreeze_classifier = unfreeze_classifier
@@ -126,7 +125,8 @@ class ResNet50CustomModel(AbstractModel):
         """This is a getter for the model."""
         return self.__model
 
-    def evaluate_on_test_set(self, test_loader):
+    @property
+    def test_accuracy(self):
         """Evaluates the model on the given test dataset and returns
           accuracy.
         """
@@ -135,7 +135,7 @@ class ResNet50CustomModel(AbstractModel):
         total = 0
 
         with torch.no_grad():
-            for images, labels in self.__test_loader:
+            for images, labels in self.__test_dataloader:
                 images = images.to(self.__device)
                 labels = labels.to(self.__device)
 
@@ -144,7 +144,7 @@ class ResNet50CustomModel(AbstractModel):
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
 
-        accuracy = 100 * correct / total
-        print(f"Accuracy on test set: {accuracy:.2f}%")
-        return accuracy
+        test_accuracy = 100 * correct / total
+        print(f"Accuracy on test set: {test_accuracy:.2f}%")
+        
         

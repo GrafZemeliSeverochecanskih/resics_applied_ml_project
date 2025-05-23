@@ -14,9 +14,9 @@ if __name__ == "__main__":
         sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
     uploader = UploadResNet50Model(
         weight_path="resics_applied_ml_project\\model\\weights\\resnet_50_custom_model_weights.pth",
+        image_path="resics_applied_ml_project\\model\\data"
     )
-    uploader.model.model_summary
-    uploader.test_accuracy_score
+    uploader.test_accuracy
 #     model_creator = CreateNewModel(
 #         epochs=10,
 #         output_dir="D:\\project_images\\resics_applied_ml_project\\model\\weights",

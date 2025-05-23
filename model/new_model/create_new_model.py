@@ -33,8 +33,8 @@ class CreateNewModel:
         self.__unfreeze_classifier = unfreeze_classifier
         self.__unfreeze_specific_blocks = unfreeze_specific_blocks
 
-        self.__train_dataloader, self.__test_dataloader, \
-            self.__val_dataloader , \
+        self.__train_dataloader, self.__val_dataloader , \
+              self.__test_dataloader, \
                 self.__class_names = self.__initializeDataHandler()
         
         self.__model = self.__initializeModel()
