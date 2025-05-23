@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Prediction Result</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f9;
+        }
+        .card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            padding: 30px;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+        }
+        p {
+            font-size: 1.2em;
+            color: #555;
+        }
+        strong {
+            color: #000;
+        }
+        img {
+            margin-top: 20px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            max-width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Prediction Result</h1>
+        <p><strong>Filename:</strong> {{ image_filename }}</p>
+        <p><strong>Predicted Class:</strong> {{ prediction }}</p>
+        
+        <img src="data:{{ mime_type }};base64,{{ image_data }}" alt="Predicted Image" width="224" height="224">
+    </div>
+</body>
+</html>
