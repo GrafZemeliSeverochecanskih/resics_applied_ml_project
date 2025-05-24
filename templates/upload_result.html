@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Prediction Result</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f4f4f9; margin: 0; padding: 20px; }
+        .container { display: flex; justify-content: center; gap: 40px; }
+        .card { background: white; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); padding: 30px; }
+        .image-card { text-align: center; }
+        .results-card { width: 400px; }
+        h1, h2 { color: #333; text-align: center; }
+        img { border: 2px solid #ddd; border-radius: 5px; max-width: 400px; max-height: 400px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { text-align: left; padding: 8px; border-bottom: 1px solid #ddd; }
+        th { background-color: #f2f2f2; }
+        tr.top-prediction td { font-weight: bold; color: #4CAF50; }
+    </style>
+</head>
+<body>
+    <h1>Prediction Result</h1>
+    <div class="container">
+    <div class="card image-card">
+    <h2>Uploaded Image</h2>
+    <img src="data:{{ mime_type }};base64,{{ image_data }}" alt="Uploaded Image">
+    <p><strong>Top Prediction: {{ prediction }}</strong></p>
+    </div>
+    <div class="card results-card">
+    <h2>Class Probabilities</h2>
+<table>
+<tr>
+<th>Class Name</th>
+<th>Probability</th>
+</tr>
+{% for class_name, probability in probabilities %}
+<tr class="{{ 'top-prediction' if loop.first else '' }}">
+<td>{{ class_name }}</td>
+<td>{{ "%.2f"|format(probability) }}%</td>
+</tr>
+{% endfor %}
+</table>
+</div>
+</div>
+</body>
+</html>

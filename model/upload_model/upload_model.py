@@ -4,6 +4,7 @@ import torchvision
 from model.new_model.resnet50_custom_model import ResNet50CustomModel
 from pathlib import Path
 from PIL import Image
+import io
 
 class UploadResNet50Model(AbstractModel):
     """This class is responsible for creating a ResNet-50 Base model basing 
@@ -81,26 +82,34 @@ class UploadResNet50Model(AbstractModel):
         """
         Takes a path to a single image, processes it, and returns the predicted class name.
         """
-        # Set the model to evaluation mode
         self.__model.eval()
-
-        # Open image with Pillow
         img = Image.open(image_path).convert("RGB")
-        
-        # Get the correct transformations from the model
         transform = self.__model.weights
-
-        # Apply transformations and add a batch dimension (B, C, H, W)
         img_tensor = transform(img).unsqueeze(0).to(self.__device)
 
         with torch.no_grad():
-            # Get raw model output (logits)
             output_logits = self.__model(img_tensor)
-        
-        # Get the predicted class index
+    
         pred_index = torch.argmax(output_logits, dim=1).item()
-        
-        # Convert index to class name
         predicted_class_name = self.class_names[pred_index]
         
         return predicted_class_name
+
+    def predict_image_with_probabilities(self, image_bytes: bytes):
+        self.__model.eval()
+        img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        transform = self.__model.weights
+        img_tensor = transform(img).unsqueeze(0).to(self.__device)
+        with torch.no_grad():
+            output_logits = self.__model(img_tensor)
+        probabilities = torch.softmax(output_logits, dim = 1)
+        top_prob, top_pred_idx = torch.max(probabilities, dim = 1)
+        predicted_class_name = self.class_names[top_pred_idx.item()]
+
+        all_probs = probabilities[0].cpu().numpy()
+        class_probabilities = sorted(
+            [(self.class_names[i], all_probs[i] * 100) for i in range(len(self.class_names))],
+            key = lambda item: item[1],
+            reverse = True
+        )
+        return predicted_class_name, class_probabilities

@@ -1,5 +1,5 @@
 from model.upload_model.upload_model import UploadResNet50Model
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, File, UploadFile
 from fastapi.responses import HTMLResponse
 from pathlib import Path
 from pydantic import BaseModel, Field
@@ -90,3 +90,26 @@ async def show_prediction_page(request: Request, folder_number: int, index_num: 
         return templates.TemplateResponse("error.html", {"request": request, "detail": str(e)}, status_code=404)
     except Exception as e:
         return templates.TemplateResponse("error.html", {"request": request, "detail": f"An error occurred: {e}"}, status_code=500)
+    
+@app.get("/upload", response_class=HTMLResponse)
+async def get_upload_form(request: Request):
+    """Serves the HTML page with the upload form."""
+    return templates.TemplateResponse("upload_form.html", {"request": request})
+
+@app.post("/upload-predict", response_class=HTMLResponse)
+async def handle_prediction_upload(request: Request, file: UploadFile = File(...)):
+    """Handles the image upload, predicts its class, and displays the result."""
+    try:
+        image_bytes = await file.read()
+        prediction, probabilities = model.predict_image_with_probabilities(image_bytes)
+        image_base64_string = base64.b64encode(image_bytes).decode("utf-8")
+        mime_type = file.content_type
+        return templates.TemplateResponse("upload_result.html", {
+            "request": request,
+            "prediction": prediction,
+            "probabilities": probabilities,
+            "image_data": image_base64_string,
+            "mime_type": mime_type
+        })
+    except Exception as e:
+        return templates.TemplateResponse("error.html", {"request": request, "detail": f"An error occurred during prediction: {e}"}, status_code=500)
