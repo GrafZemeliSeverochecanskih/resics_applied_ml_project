@@ -42,7 +42,6 @@ class UploadResNet50Model(AbstractModel):
                                                 map_location=torch.device(self.__device), 
                                                 weights_only=False))
         self.__model.to(self.__device)
-        print(f"Model loaded successfully from '{weight_path}' onto '{self.__device}' and set to evaluation mode.")
     
     @property
     def model(self):
@@ -113,3 +112,34 @@ class UploadResNet50Model(AbstractModel):
             reverse = True
         )
         return predicted_class_name, class_probabilities
+    
+    def predict_and_explain(self, image_bytes: bytes):
+        """
+        Processes image bytes, predicts, gets probabilities, and generates saliency visualization.
+        """
+        self.__model.eval()
+        img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        transform = self.__model.weights 
+        input_tensor = transform(img).unsqueeze(0).to(self.__device)
+
+        self.__model.model.eval()
+        with torch.no_grad():
+            output_logits = self.__model.model(input_tensor.clone().detach())
+        
+        probabilities = torch.softmax(output_logits, dim=1)
+        _, top_pred_index_tensor = torch.max(probabilities, dim=1)
+        top_pred_index = top_pred_index_tensor.item()
+        predicted_class_name = self.class_names[top_pred_index]
+        
+        all_probs_numpy = probabilities[0].cpu().numpy()
+        class_probabilities = sorted(
+            [(self.class_names[i], all_probs_numpy[i] * 100) for i in range(len(self.class_names))],
+            key=lambda item: item[1],
+            reverse=True
+        )
+
+        saliency_viz_b64 = self.__model.get_saliency_visualization(
+            input_tensor, top_pred_index
+        )
+        
+        return predicted_class_name, class_probabilities, saliency_viz_b64

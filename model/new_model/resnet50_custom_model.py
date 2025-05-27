@@ -5,6 +5,20 @@ from torchinfo import summary
 from torch import nn
 from pathlib import Path
 from model.utils.data_handler import DataHandler
+from model.utils.saliency_utils import SaliencyGenerator
+
+HARDCODED_CLASS_NAMES = sorted([
+    "airplane", "airport", "baseball_diamond", "basketball_court", "beach",
+    "bridge", "chaparral", "church", "circular_farmland", "cloud",
+    "commercial_area", "dense_residential", "desert", "forest", "freeway",
+    "golf_course", "ground_track_field", "harbor", "industrial_area",
+    "intersection", "island", "lake", "meadow", "medium_residential",
+    "mobile_home_park", "mountain", "overpass", "palace", "parking_lot",
+    "railway", "railway_station", "rectangular_farmland", "river",
+    "roundabout", "runway", "sea_ice", "ship", "snowberg",
+    "sparse_residential", "stadium", "storage_tank", "tennis_court",
+    "terrace", "thermal_power_station", "wetland"
+])
 
 class ResNet50CustomModel(AbstractModel):
     """This class allows user to create new model basing on the 
@@ -37,9 +51,10 @@ class ResNet50CustomModel(AbstractModel):
         self.__val_dir = self.__image_path / val
         self.__test_dir = self.__image_path / test
 
-        _, _, self.__test_dataloader , \
-            self.__class_names = self.__initializeDataHandler()
+        _, _, self.__test_dataloader = self.__initializeDataHandler()
         
+        self.__class_names = HARDCODED_CLASS_NAMES
+
         self.__device = "cuda" if torch.cuda.is_available() else "cpu"
         self.__unfreeze_classifier = unfreeze_classifier
         self.__unfreeze_specific_blocks = unfreeze_specific_blocks
@@ -53,6 +68,7 @@ class ResNet50CustomModel(AbstractModel):
         
         self.__freeze_layers()
         self.__modify_last_layer()
+        self.__saliency_generator = SaliencyGenerator(self.__model)
 
     def __initializeDataHandler(self):
         """This function creates DataHandler class instance."""
@@ -64,8 +80,7 @@ class ResNet50CustomModel(AbstractModel):
         train = datahandler.train_dataloader
         val = datahandler.val_dataloader
         test = datahandler.test_dataloader
-        classes = datahandler.class_names
-        return train, val, test, classes
+        return train, val, test
 
     def __freeze_layers(self):
         """This method freezes the layers, in case user does not want to trani model."""
@@ -161,3 +176,12 @@ class ResNet50CustomModel(AbstractModel):
     def test_directory(self):
         return self.__test_dir
     
+    def get_saliency_visualization(self, input_tensor: torch.Tensor, target_class_idx: int = None):
+        input_tensor_clone_for_saliency = input_tensor.clone().detach().requires_grad_(True)
+        saliency_map_data, _ = self.__saliency_generator.compute_saliency_map_data(
+            input_tensor_clone_for_saliency, target_class_idx
+        )
+        saliency_viz_b64 = self.__saliency_generator.create_saliency_visualization_base64(
+            input_tensor.clone().detach(), saliency_map_data
+        )
+        return saliency_viz_b64
