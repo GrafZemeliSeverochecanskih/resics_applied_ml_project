@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Classifier with Saliency Map</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f0f2f5; color: #333; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding-top: 20px; padding-bottom: 20px; }
+        .container { background-color: #fff; padding: 25px 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 90%; max-width: 700px; }
+        h1 { color: #1a73e8; text-align: center; margin-bottom: 25px; font-size: 1.8em; }
+        
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: #555; }
+        input[type="file"] { 
+            display: block; 
+            width: calc(100% - 22px); 
+            padding: 10px; 
+            margin-bottom: 20px; 
+            border: 1px solid #ddd; 
+            border-radius: 5px; 
+            background-color: #f9f9f9;
+            font-size: 0.95em;
+        }
+        input[type="file"]::file-selector-button {
+            background-color: #1a73e8;
+            color: white;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            transition: background-color 0.2s;
+        }
+        input[type="file"]::file-selector-button:hover {
+            background-color: #1558b0;
+        }
+
+        button { 
+            background-color: #28a745; /* Green for go */
+            color: white; 
+            padding: 12px 20px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-size: 1.05em; 
+            width: 100%;
+            transition: background-color 0.2s;
+            font-weight: 600;
+        }
+        button:hover { background-color: #218838; }
+        
+        .loader { border: 5px solid #f3f3f3; border-radius: 50%; border-top: 5px solid #1a73e8; width: 30px; height: 30px; animation: spin 1.5s linear infinite; margin: 20px auto; display: none; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        #resultsContainer { margin-top: 25px; }
+        .result-section {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #e0e0e0;
+        }
+        .result-section h2 {
+            font-size: 1.2em;
+            color: #1a73e8;
+            margin-top: 0;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 8px;
+        }
+        .result-section p { margin: 5px 0; font-size: 1em; }
+        .result-section strong { color: #333; }
+
+        #saliencyMapContainer img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+            margin-top: 10px;
+            border: 1px solid #ccc;
+        }
+        #probabilitiesList {
+            list-style-type: none;
+            padding-left: 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        #probabilitiesList li {
+            padding: 6px 0;
+            border-bottom: 1px dashed #eee;
+            font-size: 0.9em;
+        }
+        #probabilitiesList li:last-child {
+            border-bottom: none;
+        }
+        .error-message { color: #d93025; font-weight: bold; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Image Classifier & Saliency Map</h1>
+        <form id="uploadForm">
+            <label for="imageFile">Choose an image:</label>
+            <input type="file" id="imageFile" name="image_file" accept="image/*" required>
+            <button type="submit">Predict & Explain</button>
+        </form>
+        
+        <div class="loader" id="loader"></div>
+        
+        <div id="resultsContainer" style="display: none;">
+            <div class="result-section" id="predictionSection">
+                <h2>Prediction</h2>
+                <p id="predictionText"></p>
+            </div>
+            
+            <div class="result-section" id="saliencyMapContainer">
+                <h2>Saliency Map</h2>
+                <img id="saliencyMapImage" src="#" alt="Saliency Map" style="display:none;"/>
+                <p id="saliencyMapMessage" style="display:none;">Saliency map will appear here.</p>
+            </div>
+
+            <div class="result-section" id="probabilitiesContainer">
+                <h2>Top Class Probabilities</h2>
+                <ul id="probabilitiesList"></ul>
+                <p id="probabilitiesMessage" style="display:none;">Probabilities will appear here.</p>
+            </div>
+        </div>
+        <div id="errorDisplay" class="error-message" style="margin-top: 15px;"></div>
+        
+    </div>
+
+    <script>
+        const form = document.getElementById('uploadForm');
+        const imageFile = document.getElementById('imageFile');
+        const loader = document.getElementById('loader');
+        const resultsContainer = document.getElementById('resultsContainer');
+        
+        const predictionText = document.getElementById('predictionText');
+        
+        const saliencyMapContainer = document.getElementById('saliencyMapContainer');
+        const saliencyMapImage = document.getElementById('saliencyMapImage');
+        const saliencyMapMessage = document.getElementById('saliencyMapMessage');
+
+        const probabilitiesContainer = document.getElementById('probabilitiesContainer');
+        const probabilitiesList = document.getElementById('probabilitiesList');
+        const probabilitiesMessage = document.getElementById('probabilitiesMessage');
+
+        const errorDisplay = document.getElementById('errorDisplay');
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            
+            // Clear previous results and errors
+            resultsContainer.style.display = 'none';
+            predictionText.textContent = '';
+            saliencyMapImage.style.display = 'none';
+            saliencyMapImage.src = '#';
+            saliencyMapMessage.style.display = 'block';
+            saliencyMapMessage.textContent = 'Saliency map will appear here.';
+            probabilitiesList.innerHTML = '';
+            probabilitiesMessage.style.display = 'block';
+            probabilitiesMessage.textContent = 'Probabilities will appear here.';
+            errorDisplay.textContent = '';
+
+            if (!imageFile.files || imageFile.files.length === 0) {
+                errorDisplay.textContent = 'Please select an image file.';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('image_file', imageFile.files[0]);
+
+            loader.style.display = 'block';
+
+            try {
+                // Call the new endpoint
+                const response = await fetch('/predict_and_explain/', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    resultsContainer.style.display = 'block';
+
+                    // Display prediction
+                    predictionText.innerHTML = `<strong>Predicted Class:</strong> ${data.prediction || 'N/A'}`;
+                    
+                    // Display saliency map
+                    if (data.saliency_map_base64) {
+                        saliencyMapImage.src = `data:image/png;base64,${data.saliency_map_base64}`;
+                        saliencyMapImage.style.display = 'block';
+                        saliencyMapMessage.style.display = 'none';
+                    } else {
+                        saliencyMapMessage.textContent = 'Saliency map not available.';
+                        saliencyMapMessage.style.display = 'block';
+                        saliencyMapImage.style.display = 'none';
+                    }
+
+                    // Display probabilities
+                    if (data.probabilities && data.probabilities.length > 0) {
+                        probabilitiesList.innerHTML = ''; // Clear previous
+                        data.probabilities.slice(0, 10).forEach(probItem => { // Show top 10 or fewer
+                            const listItem = document.createElement('li');
+                            listItem.textContent = `${probItem[0]}: ${parseFloat(probItem[1]).toFixed(2)}%`;
+                            probabilitiesList.appendChild(listItem);
+                        });
+                        probabilitiesMessage.style.display = 'none';
+                    } else {
+                        probabilitiesMessage.textContent = 'Probabilities not available.';
+                        probabilitiesMessage.style.display = 'block';
+                         probabilitiesList.innerHTML = '';
+                    }
+
+                } else {
+                    const errorData = await response.json();
+                    errorDisplay.textContent = `Error: ${errorData.detail || response.statusText}`;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                errorDisplay.textContent = `An error occurred: ${error.message}`;
+            } finally {
+                loader.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

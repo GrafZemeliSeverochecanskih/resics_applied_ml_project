@@ -1,0 +1,13 @@
+.result-image-card {
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    text-align: center; /* Centers the h2 title */
+}
+.result-image-card h2 {
+    font-size: 1.2em;
+    color: #1a73e8;
+    margin-top: 0;
+    margin-bottom: 10px;
+}
