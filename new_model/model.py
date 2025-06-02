@@ -11,7 +11,8 @@ import matplotlib.pyplot as plt
 import json
 import seaborn as sns
 from sklearn.metrics import confusion_matrix
-import numpy as np 
+import numpy as np
+from new_model.trainer import * 
 
 class NewModel(torch.nn.Sequential):
     def __init__(self,
@@ -71,10 +72,21 @@ class NewModel(torch.nn.Sequential):
             list(filter(lambda p: p.requires_grad, self.__model.parameters())),
             lr=self.__lr
             )
+        
         self.__loss_fn = loss_fn
+        
         self.__epochs = epochs
         
-        self.__results = self.__run()
+        self.__trainer = Trainer(
+            model = self.__model, 
+            train_dataloader = self.__train_dataloader,
+            val_dataloader = self.__val_dataloader,
+            loss_fn = self.__loss_fn,
+            learning_rate = self.__lr,
+            epochs = self.__epochs
+        )
+
+        self.__results = self.__trainer.run()
         self.__create_graphs()
         self.__create_and_save_val_confusion_matrix()
         self.__save_accuracies_json()
@@ -144,60 +156,6 @@ class NewModel(torch.nn.Sequential):
             pin_memory=True
         )
         return dataloader
-    
-    def __train_step(self):
-        """This function implements training step."""
-        self.__model.train()
-        train_loss, train_acc = 0, 0
-        for batch, (X, y) in enumerate(self.__train_dataloader):
-            X, y = X.to(self.__device), y.to(self.__device)
-            y_pred = self.__model(X)
-            loss = self.__loss_fn(y_pred, y)
-            train_loss += loss.item()
-            self.__optimizer.zero_grad()
-            loss.backward()
-            self.__optimizer.step()
-            y_pred_class = torch.argmax(torch.softmax(y_pred, dim = 1), dim=1)
-            train_acc += (y_pred_class == y).sum().item() / len(y_pred)
-        train_loss = train_loss / len(self.__train_dataloader)
-        train_acc = train_acc / len(self.__train_dataloader)
-        return train_loss, train_acc
-
-    def __val_step(self):
-        """This function implements valiadtion step."""
-        self.__model.eval()
-        val_loss, val_acc = 0, 0
-        with torch.inference_mode():
-            for batch, (X, y) in enumerate(self.__val_dataloader):
-                X, y = X.to(self.__device), y.to(self.__device)
-                val_pred_logits = self.__model(X)
-                loss = self.__loss_fn(val_pred_logits, y)
-                val_loss += loss.item()
-                val_pred_labels = val_pred_logits.argmax(dim=1)
-                val_acc += ((val_pred_labels == y).sum().item()/len(val_pred_labels))
-        val_loss = val_loss / len(self.__val_dataloader)
-        val_acc = val_acc / len(self.__val_dataloader)
-        return val_loss, val_acc
-    
-    def __run(self):
-        """This function implements a trainer run"""
-        results = {"train_loss": [], "train_acc": [], "val_loss": [], "val_acc": []}
-        self.__model.to(self.__device)
-        for epoch in tqdm(range(self.__epochs)):
-            train_loss, train_acc = self.__train_step()
-            val_loss, val_acc = self.__val_step()
-            print(
-                f"Epoch: {epoch+1} | "
-                f"train_loss: {train_loss:.4f} | "
-                f"train_acc: {train_acc:.4f} | "
-                f"val_loss: {val_loss:.4f} | "
-                f"val_acc: {val_acc:.4f}"
-                )
-            results["train_loss"].append(train_loss)
-            results["train_acc"].append(train_acc)
-            results["val_loss"].append(val_loss)
-            results["val_acc"].append(val_acc)
-        return results
     
     def __create_graphs(self):
         """This function creates graphs with loss and accuracy."""

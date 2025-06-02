@@ -15,34 +15,21 @@ class Trainer:
                  train_dataloader: torch.utils.data.DataLoader,
                  val_dataloader: torch.utils.data.DataLoader,
                  loss_fn: torch.nn.Module = nn.CrossEntropyLoss(),
-                 learning_rate: int = 0.001,
+                 learning_rate: float = 0.001,
                  epochs = 10
                  ):
-        """This is the Trainer class constructor.
-        Args:
-            model (ResNet50CustomModel): a modified ResNet-50 architecture
-            train_dataloader (torch.utils.data.DataLoader): training data 
-            loader
-            val_dataloader (torch.utils.data.DataLoader): validation data 
-            loader
-            loss_fn (torch.nn.Module, optional): loss function used during
-            the trainig. Defaults to nn.CrossEntropyLoss().
-            learning_rate (int, optional): learning rate. Defaults to 0.001.
-            epochs (int, optional): number of epochs. Defaults to 10.
-        """
-        self.__lr = learning_rate
         self.__model = model
-        self.__device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.__optimizer = Adam(
-            list(filter(lambda p: p.requires_grad, model.parameters())),
-            lr=self.__lr
-            )
-        
         self.__train_dataloader = train_dataloader
         self.__val_dataloader = val_dataloader
+        self.__device = "cuda" if torch.cuda.is_available() else "cpu"
         self.__loss_fn = loss_fn
+        self.__lr = learning_rate
         self.__epochs = epochs
-    
+        self.__optimizer = Adam(
+            list(filter(lambda p: p.requires_grad, self.__model.parameters())),
+            lr=self.__lr
+            )
+
     def __train_step(self):
         """This function implements training step."""
         self.__model.train()
@@ -60,7 +47,7 @@ class Trainer:
         train_loss = train_loss / len(self.__train_dataloader)
         train_acc = train_acc / len(self.__train_dataloader)
         return train_loss, train_acc
-    
+
     def __val_step(self):
         """This function implements valiadtion step."""
         self.__model.eval()
@@ -76,7 +63,7 @@ class Trainer:
         val_loss = val_loss / len(self.__val_dataloader)
         val_acc = val_acc / len(self.__val_dataloader)
         return val_loss, val_acc
-    
+        
     def run(self):
         """This function implements a trainer run"""
         results = {"train_loss": [], "train_acc": [], "val_loss": [], "val_acc": []}
@@ -95,5 +82,5 @@ class Trainer:
             results["train_acc"].append(train_acc)
             results["val_loss"].append(val_loss)
             results["val_acc"].append(val_acc)
-        return results    
-    
+        return results
+        
