@@ -5,14 +5,11 @@ import os
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 from torch.optim import *
-from tqdm import tqdm
 import torchvision
-import matplotlib.pyplot as plt
-import json
-import seaborn as sns
-from sklearn.metrics import confusion_matrix
-import numpy as np
-from new_model.trainer import * 
+from new_model.trainer import Trainer
+from new_model.plot_creator import PlotCreator
+from new_model.utils import Utilities
+from new_model.data_handler import DataHandler
 
 class NewModel(torch.nn.Sequential):
     def __init__(self,
@@ -43,7 +40,8 @@ class NewModel(torch.nn.Sequential):
         
         self.__unfreeze_classifier = unfreeze_classifier
         self.__unfreeze_specific_blocks = unfreeze_specific_blocks
-        weights_enum = torchvision.models.ResNet50_Weights.IMAGENET1K_V2
+        weights_enum = torchvision.models.\
+            ResNet50_Weights.IMAGENET1K_V2
         self.__weights_transformed = weights_enum.transforms()
         self.__model = torchvision.models.resnet50(
             weights=weights_enum
@@ -51,25 +49,25 @@ class NewModel(torch.nn.Sequential):
         self.__freeze_layers()
         self.__modify_last_layer()
 
-        self.__num_workers = os.cpu_count()
         self.__batch_size = batch_size
 
-        if transform is None:
-            self.__transform = self.__create_default_transform()
+        data_hander = DataHandler(
+            train_dir=self.__train_dir, 
+            val_dir=self.__val_dir,
+            test_dir=self.__test_dir,
+            num_workers=os.cpu_count(),
+            batch_size=self.__batch_size,
+            transform = transform
+        )
 
-        self.__train_data = datasets.ImageFolder(self.__train_dir, transform = self.__transform)
-        self.__val_data = datasets.ImageFolder(self.__val_dir, transform=self.__transform)
-        self.__test_data = datasets.ImageFolder(self.__test_dir, transform=self.__transform)
-        
-        self.__class_names = self.__train_data.classes
-        
-        self.__train_dataloader = self.__create_dataloader(self.__train_data, shuffle=True)
-        self.__val_dataloader = self.__create_dataloader(self.__val_data)
-        self.__test_dataloader = self.__create_dataloader(self.__test_data)
+        self.__train_dataloader = data_hander.train_dataloader
+        self.__val_dataloader = data_hander.val_dataloader
+        self.__test_dataloader = data_hander.test_dataloader
 
         self.__lr = learning_rate
         self.__optimizer = Adam(
-            list(filter(lambda p: p.requires_grad, self.__model.parameters())),
+            list(filter(lambda p: p.requires_grad, 
+                        self.__model.parameters())),
             lr=self.__lr
             )
         
@@ -78,7 +76,8 @@ class NewModel(torch.nn.Sequential):
         self.__epochs = epochs
         
         self.__trainer = Trainer(
-            model = self.__model, 
+            model = self.__model,
+            optimizer=self.__optimizer,
             train_dataloader = self.__train_dataloader,
             val_dataloader = self.__val_dataloader,
             loss_fn = self.__loss_fn,
@@ -87,10 +86,20 @@ class NewModel(torch.nn.Sequential):
         )
 
         self.__results = self.__trainer.run()
-        self.__create_graphs()
-        self.__create_and_save_val_confusion_matrix()
-        self.__save_accuracies_json()
-        self.__save_model_weights()
+        
+        plot_creator = PlotCreator(self.__results, self.__output_dir)
+        plot_creator.run()
+
+
+        utils = Utilities(
+            results=self.__results,
+            output_dir=self.__output_dir,
+            model=self.__model,
+            filename=self.__filename,
+            val_dataloader=self.__val_dataloader,
+            test_dataloader=self.__test_dataloader
+        )
+        utils.run()
 
     def __freeze_layers(self):
         """This method freezes the layers, in case user does not want to trani model."""
@@ -130,163 +139,6 @@ class NewModel(torch.nn.Sequential):
     def forward(self, x):
         """This is the forward pass of the model."""
         return self.__model(x)
-    
-    def __create_default_transform(self) -> transforms.Compose:
-        """This function created default transform.
-
-        Returns:
-            transforms.Compose: basic transofrmations applied to images.
-        """
-        transform = transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean =[0.485, 0.456, 0.406],
-                                 std = [0.229, 0.224, 0.225])
-        ])
-
-        return transform
-    
-    def __create_dataloader(self, data: datasets, shuffle = False) -> DataLoader:
-        """This function creates data loaders."""
-        dataloader = DataLoader(
-            data,
-            batch_size = self.__batch_size,
-            shuffle = shuffle,
-            num_workers=self.__num_workers,
-            pin_memory=True
-        )
-        return dataloader
-    
-    def __create_graphs(self):
-        """This function creates graphs with loss and accuracy."""
-        self.__visualize_loss()
-        self.__visualize_accuracy()
-
-    def __visualize_loss(self):
-        if self.__results and all(k in self.__results for k in ["train_loss", "val_loss"]):
-            epochs_ran = len(self.__results["train_loss"])
-            epoch_ticks = range(1, epochs_ran + 1)
-
-            plt.figure(figsize=(15, 7))
-            plt.plot(epoch_ticks, self.__results["train_loss"], label="train_loss")
-            plt.plot(epoch_ticks, self.__results["val_loss"], label="val_loss")
-            plt.title("Loss Curves")
-            plt.xlabel("Epochs")
-            plt.ylabel("Loss")
-            plt.xticks(epoch_ticks)
-            plt.legend()
-
-            graph_path = self.__output_dir / "loss_curves.png"
-            plt.savefig(graph_path)
-            print(f"Loss curves saved to {graph_path}")
-            plt.close()
-        else:
-            print("Skipping plotting loss curves as training results are not available or incomplete.")
-
-    def __visualize_accuracy(self):
-        if self.__results and all(k in self.__results for k in ["train_acc", "val_acc"]):
-            epochs_ran = len(self.__results["train_acc"])
-            epoch_ticks = range(1, epochs_ran + 1)
-
-            plt.figure(figsize=(15, 7))
-            plt.plot(epoch_ticks, self.__results["train_acc"], label="train_accuracy")
-            plt.plot(epoch_ticks, self.__results["val_acc"], label="val_accuracy")
-            plt.title("Accuracy Curves")
-            plt.xlabel("Epochs")
-            plt.ylabel("Accuracy")
-            plt.xticks(epoch_ticks)
-            plt.legend()
-
-            graph_path = self.__output_dir / "accuracy_curves.png"
-            plt.savefig(graph_path)
-            print(f"Accuracy curves saved to {graph_path}")
-            plt.close()
-        else:
-            print("Skipping plotting accuracy curves as training results are not available or incomplete.")
-
-    def __save_accuracies_json(self):
-        print("Saving accuracies to JSON...")
-        if self.__results and \
-           self.__results.get("train_acc") and \
-           self.__results.get("val_acc"):
-            
-            # Ensure output directory exists
-            os.makedirs(self.__output_dir, exist_ok=True)
-            
-            accuracies = {
-                "last_train_accuracy": self.__results["train_acc"][-1] if self.__results["train_acc"] else None,
-                "last_val_accuracy": self.__results["val_acc"][-1] if self.__results["val_acc"] else None,
-                "test_accuracy": self.test_accuracy # Call the property
-            }
-            
-            json_path = self.__output_dir / "accuracies_summary.json"
-            
-            try:
-                with open(json_path, 'w') as f:
-                    json.dump(accuracies, f, indent=4)
-                print(f"Accuracies summary saved to {json_path}")
-            except Exception as e:
-                print(f"Error saving accuracies to {json_path}: {e}")
-        else:
-            print("Skipping saving accuracies as training results are not available or incomplete.")
-
-    def __create_and_save_val_confusion_matrix(self):
-        """Creates, plots, and saves a confusion matrix for the validation dataset."""
-        print("Generating and saving validation confusion matrix...")
-        self.__model.eval()
-        all_labels = []
-        all_preds = []
-        
-        # Ensure output directory exists
-        os.makedirs(self.__output_dir, exist_ok=True)
-
-        with torch.no_grad():
-            for X, y in tqdm(self.__val_dataloader, desc="Generating Validation Confusion Matrix"):
-                X, y_true = X.to(self.__device), y.to(self.__device) # y_true for clarity
-                outputs = self.__model(X)
-                _, predicted_labels = torch.max(outputs, 1)
-                
-                all_preds.extend(predicted_labels.cpu().numpy())
-                all_labels.extend(y_true.cpu().numpy())
-        
-        if not all_labels or not all_preds:
-            print("No data found in validation set to generate confusion matrix.")
-            return
-
-        try:
-            cm = confusion_matrix(all_labels, all_preds)
-            plt.figure(figsize=(max(10, len(self.__class_names)*0.5), max(8, len(self.__class_names)*0.4))) # Dynamic sizing
-            
-            sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", 
-                        xticklabels=self.__class_names, 
-                        yticklabels=self.__class_names)
-            plt.xlabel("Predicted Labels")
-            plt.ylabel("True Labels")
-            plt.title("Validation Confusion Matrix")
-            plt.tight_layout()
-            
-            cm_path = self.__output_dir / "validation_confusion_matrix.png"
-            plt.savefig(cm_path)
-            print(f"Validation confusion matrix saved to {cm_path}")
-            plt.close()
-        except Exception as e:
-            print(f"Error generating or saving confusion matrix: {e}")
-
-    def __save_model_weights(self):
-        if self.__model is not None:
-            try:
-                os.makedirs(self.__output_dir, exist_ok=True)
-                model_save_path = self.__output_dir / self.__filename
-                torch.save(self.__model.state_dict(), model_save_path)
-            except AttributeError:
-                 print(f"AttributeError: Could not save model weights. \
-                       Ensure self.__model is a valid PyTorch nn.Module \
-                       and has state_dict method.")
-            except Exception as e:
-                print(f"Error saving model weights to \
-                       {model_save_path}: {e}")
-        else:
-            print("Model not initialized")
     
     @property
     def test_accuracy(self):

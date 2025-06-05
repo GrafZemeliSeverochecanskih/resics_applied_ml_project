@@ -107,31 +107,21 @@ class UploadModel(torch.nn.Module):
         Assumes tensor_batch is [1, C, H, W].
         """
         if tensor_batch is None or tensor_batch.numel() == 0:
-            # Return a placeholder or raise an error if tensor is invalid
             return Image.new('RGB', (224, 224), color = 'grey')
 
-        img_tensor = tensor_batch.squeeze(0).cpu().clone() # [C, H, W]
-
-        # ImageNet normalization stats used by ResNet50_Weights.IMAGENET1K_V2.transforms()
+        img_tensor = tensor_batch.squeeze(0).cpu().clone()
         mean = torch.tensor([0.485, 0.456, 0.406], device=img_tensor.device)
         std = torch.tensor([0.229, 0.224, 0.225], device=img_tensor.device)
 
-        # Denormalize: (tensor * std) + mean
-        # Reshape mean and std to be compatible with img_tensor for broadcasting
         mean = mean.view(-1, 1, 1)
         std = std.view(-1, 1, 1)
         
         img_tensor = img_tensor * std + mean
-
-        # Clamp values to [0, 1] as denormalization might slightly push them out
         img_tensor = torch.clamp(img_tensor, 0, 1)
-
-        # Convert to PIL Image
         to_pil = torchvision.transforms.ToPILImage()
         pil_image = to_pil(img_tensor)
         return pil_image
 
-    # --- MODIFIED: get_saliency_visualization method ---
     def get_saliency_visualization(self, input_tensor: torch.Tensor, target_class_idx: int) -> str:
         """
         Generates a vanilla gradient saliency map, applies a colormap,
@@ -159,61 +149,40 @@ class UploadModel(torch.nn.Module):
         saliency_gradients = torch.abs(saliency_gradients)
         saliency_map, _ = torch.max(saliency_gradients, dim=1) 
         saliency_map_np = saliency_map.squeeze().cpu().numpy()
-
-        # Normalize the saliency map to 0-1 range for colormap
         min_val = np.min(saliency_map_np)
         max_val = np.max(saliency_map_np)
-        saliency_map_0_to_1 = saliency_map_np # Default to original if flat
+        saliency_map_0_to_1 = saliency_map_np
         if max_val - min_val > 1e-8:
             saliency_map_0_to_1 = (saliency_map_np - min_val) / (max_val - min_val)
         
-        # Apply a colormap (e.g., 'jet' or 'hot')
-        # cm.jet returns an RGBA image (H, W, 4) with values in [0,1]
         heatmap_rgba_norm = cm.jet(saliency_map_0_to_1)
-        # Convert to uint8 [0,255]
         heatmap_rgba_uint8 = (heatmap_rgba_norm * 255).astype(np.uint8)
-        # Create PIL Image from the heatmap
         saliency_pil_rgba = Image.fromarray(heatmap_rgba_uint8, mode='RGBA')
 
-        # Get the original image as PIL
-        original_pil_rgb = self.__denormalize_tensor_to_pil(input_tensor) # Use the new helper
-        original_pil_rgba = original_pil_rgb.convert('RGBA') # Ensure it's RGBA for compositing
-
-        # Ensure saliency map is the same size as the original image
-        # (It should be if input_tensor comes directly from the transform pipeline)
+        original_pil_rgb = self.__denormalize_tensor_to_pil(input_tensor)
+        original_pil_rgba = original_pil_rgb.convert('RGBA')
         if saliency_pil_rgba.size != original_pil_rgba.size:
             saliency_pil_rgba = saliency_pil_rgba.resize(original_pil_rgba.size, Image.Resampling.LANCZOS)
 
-        # --- Control Transparency of the Heatmap ---
-        # We can make the heatmap more or less transparent.
-        # Here, we scale the alpha channel of the colormap.
-        # Lower values in 'alpha_intensity_scale' mean more transparent heatmap.
-        alpha_intensity_scale = 50
+        alpha_intensity_scale = 25
         
         r, g, b, a = saliency_pil_rgba.split()
-        # Scale existing alpha or saliency map intensity to new alpha
-        # New alpha based on saliency intensity, scaled by alpha_intensity_scale
         new_alpha_data = (saliency_map_0_to_1 * alpha_intensity_scale * 255).astype(np.uint8)
         new_alpha_channel = Image.fromarray(new_alpha_data, mode='L')
         saliency_pil_rgba.putalpha(new_alpha_channel)
 
-        # Blend original image with the saliency map
-        # Image.alpha_composite requires both images to be RGBA and same size
         blended_image_pil = Image.alpha_composite(original_pil_rgba, saliency_pil_rgba)
 
-        # Convert final blended PIL Image to base64 string
         buffered = io.BytesIO()
-        blended_image_pil.convert('RGB').save(buffered, format="PNG") # Convert to RGB before saving if alpha not needed in final PNG
+        blended_image_pil.convert('RGB').save(buffered, format="PNG")
         saliency_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
-
         return saliency_base64
-
-    # Make sure your corrected predict_and_explain method is also in the class:
+    
     def predict_and_explain(self, image_bytes: bytes):
         """
         Processes image bytes, predicts, gets probabilities, and generates saliency visualization.
         """
-        self.__model.eval() # Ensure the model is in evaluation mode
+        self.__model.eval()
 
         img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
         
@@ -224,10 +193,6 @@ class UploadModel(torch.nn.Module):
             transform = self.__weights_transformed 
         
         input_tensor = transform(img).unsqueeze(0).to(self.__device)
-
-        # Store the original input tensor if needed for other types of visualizations
-        # or if get_saliency_visualization needs the *untransformed* image for some reason
-        # (though current setup passes the transformed tensor)
 
         with torch.no_grad():
             output_logits = self.__model(input_tensor.clone().detach()) 
@@ -244,8 +209,6 @@ class UploadModel(torch.nn.Module):
             reverse=True
         )
 
-        # Call the get_saliency_visualization method of self
-        # It expects the *transformed* input_tensor
         saliency_viz_b64 = self.get_saliency_visualization(
             input_tensor, top_pred_index
         )

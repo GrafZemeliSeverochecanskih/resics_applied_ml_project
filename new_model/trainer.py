@@ -2,7 +2,6 @@ from torch.optim import *
 from tqdm import tqdm
 from torch import nn
 import torch
-from new_model.model import NewModel
 
 class Trainer:
     """This class implements all functions needed for training a modified
@@ -11,7 +10,8 @@ class Trainer:
         https://www.learnpytorch.io/05_pytorch_going_modular/
     """
     def __init__(self, 
-                 model: NewModel, 
+                 model: nn.Module,
+                 optimizer: torch.optim.Optimizer, 
                  train_dataloader: torch.utils.data.DataLoader,
                  val_dataloader: torch.utils.data.DataLoader,
                  loss_fn: torch.nn.Module = nn.CrossEntropyLoss(),
@@ -25,10 +25,7 @@ class Trainer:
         self.__loss_fn = loss_fn
         self.__lr = learning_rate
         self.__epochs = epochs
-        self.__optimizer = Adam(
-            list(filter(lambda p: p.requires_grad, self.__model.parameters())),
-            lr=self.__lr
-            )
+        self.__optimizer = optimizer
 
     def __train_step(self):
         """This function implements training step."""
