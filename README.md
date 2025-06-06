@@ -58,14 +58,4 @@ Our baseline model is a basic Convolutional Neural Network (CNN). We used a cust
 1. Clone the repository:
 git clone https://github.com/GrafZemeliSeverochecanskih/resics_applied_ml_project.git
 cd resics_applied_ml_project
-2. Create a virtual environment and install dependencies:
-python -m venv venv
-source venv\Scripts\activate (on Windows)
-pip install -r requirements.txt
 3. This project uses the RESICS-45 dataset, it can be found at https://paperswithcode.com/dataset/resisc45
-    **To use it:**
-    1. Download the dataset manually from the link above.
-    2. Extract it and place it under `data/RESISC45/`.
-
-
-
