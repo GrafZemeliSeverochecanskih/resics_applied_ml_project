@@ -98,23 +98,23 @@ class ResNet50CustomModel(AbstractModel):
         return self.__model
 
     def evaluate_on_test_set(self, test_loader):
-    """Evaluates the model on the given test dataset and returns accuracy.
-    """
-    self.__model.eval()
-    correct = 0
-    total = 0
+        """Evaluates the model on the given test dataset and returns accuracy.
+        """
+        self.__model.eval()
+        correct = 0
+        total = 0
 
-    with torch.no_grad():
-        for images, labels in test_loader:
-            images = images.to(self.__device)
-            labels = labels.to(self.__device)
+        with torch.no_grad():
+            for images, labels in test_loader:
+                images = images.to(self.__device)
+                labels = labels.to(self.__device)
 
-            outputs = self.__model(images)
-            _, predicted = torch.max(outputs.data, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
+                outputs = self.__model(images)
+                _, predicted = torch.max(outputs.data, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
 
-    accuracy = 100 * correct / total
-    print(f"Accuracy on test set: {accuracy:.2f}%")
-    return accuracy
-     
+        accuracy = 100 * correct / total
+        print(f"Accuracy on test set: {accuracy:.2f}%")
+        return accuracy
+        
