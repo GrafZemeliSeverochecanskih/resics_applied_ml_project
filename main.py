@@ -1,73 +1,31 @@
 # <<<<<<< HEAD
 from upload_model.model import UploadModel
-# from new_model.model import NewModel
+from new_model.model import NewModel
 from pathlib import Path
 import os
 from new_baseline_model.data_handler import DataHandler
 from new_baseline_model.model import CNNBaselineModel
 from new_cnn_runner import NewCnnRunner 
-from upload_baseline_model.model import UploadCNN
+from upload_baseline_model.baseline_model import UploadCNN
 
 if __name__ == "__main__":
-    model = UploadCNN(
-        r"D:\project_images\resics_applied_ml_project\my_cnn_baseline.pth",
-    )
-    print(model.predict(r"D:\project_images\resics_applied_ml_project\data\test\airplane\airplane_692.jpg"))
+    # model = UploadCNN(
+    #     r"D:\project_images\resics_applied_ml_project\my_cnn_baseline.pth",
+    # )
+    # print(model.predict(r"D:\project_images\resics_applied_ml_project\data\test\airplane\airplane_692.jpg"))
     # model = NewCnnRunner(
     #     r"D:\project_images\resics_applied_ml_project\data",
     #     r"D:\project_images\resics_applied_ml_project",
     #     epochs = 2
     # )
     # print("Starting main execution...")
-    # BASE_DATA_PATH = Path(r"D:\project_images\resics_applied_ml_project\data")
-    # TRAIN_DIR = BASE_DATA_PATH / "train"
-    # VAL_DIR = BASE_DATA_PATH / "val"
-    # TEST_DIR = BASE_DATA_PATH / "test"
-    # OUTPUT_DIR = Path(r"D:\project_images\resics_applied_ml_project")
-    # MODEL_FILENAME = "my_cnn_baseline"
-
-    # BATCH_SIZE = 32
-    # NUM_WORKERS = os.cpu_count() // 2 if os.cpu_count() else 0
-    # EPOCHS = 5
-    # LEARNING_RATE = 0.001
-    # NUM_FILTERS_CONV_LAYER = 16
-
-    # data_handler = DataHandler(
-    #     train_dir=str(TRAIN_DIR),
-    #     val_dir=str(VAL_DIR),
-    #     test_dir=str(TEST_DIR),
-    #     num_workers=NUM_WORKERS,
-    #     batch_size=BATCH_SIZE
-    # )
-    # print("DataHandler initialized.")
-    # print(f"Training classes: {data_handler.classes}")
-
-    # print("Initializing CNNBaselineModel...")
-    # cnn_model = CNNBaselineModel(
-    #     data_handler=data_handler,
-    #     output_dir=str(OUTPUT_DIR),
-    #     filename=MODEL_FILENAME,
-    #     epochs=EPOCHS,
-    #     learning_rate=LEARNING_RATE,
-    #     num_filters=NUM_FILTERS_CONV_LAYER
-    # )
-    # print("CNNBaselineModel initialized.")
-
-    # print("Starting model training (fit method)...")
-    # training_results = cnn_model.fit()
-    # print("Model training finished.")
-    # print("Training results:", training_results)
-
-    # print("Evaluating model on the test set...")
-    # test_loss, test_accuracy = cnn_model.evaluate()
-    # print(f"Evaluation complete. Test Loss: {test_loss:.4f}, Test Accuracy: {test_accuracy:.4f}")
 
     # Before writing the path try to add r
     # in case you get an error
     # For instance r"D:\"
-    # model = UploadModel(r"resnet_50.pth")
-    # print(model.predict_single_image(r"D:\project_images — копия\resics_applied_ml_project\data\test\basketball_court\basketball_court_027.jpg"))
-    # # model = NewModel(image_path=r"D:\project_images — копия\resics_applied_ml_project\data",
+    model = UploadModel(r"resnet_50.pth")
+    print(model.predict_single_image(r"D:\project_images\resics_applied_ml_project\data\test\palace\palace_001.jpg"))
+    # model = NewModel(image_path=r"D:\project_images — копия\resics_applied_ml_project\data",
     #     output_dir=r"D:\project_images\resics_applied_ml_project",
     #     filename="resnet_50",
     #     unfreeze_specific_blocks = ["layer1", "layer2", "layer3", "layer4"],

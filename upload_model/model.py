@@ -93,13 +93,15 @@ class UploadModel(torch.nn.Module):
         transform = self.weights
         img_tensor = transform(img).unsqueeze(0).to(self.__device)
 
-        with torch.no_grad():
+        with torch.inference_mode():
             output_logits = self.__model(img_tensor)
-    
-        pred_index = torch.argmax(output_logits, dim=1).item()
-        predicted_class_name = self.class_names[pred_index]
+            output_probs = torch.softmax(output_logits, dim=1)
+            confidence, pred_index = torch.max(output_probs, dim=1)
+                
+        predicted_class_name = self.class_names[pred_index.item()]
+        confidence_score = confidence.item()
         
-        return predicted_class_name
+        return predicted_class_name, confidence_score
 
     def __denormalize_tensor_to_pil(self, tensor_batch: torch.Tensor) -> Image.Image:
         """
