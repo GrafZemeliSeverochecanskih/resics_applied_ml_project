@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediction Results</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f8f9fa; margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: 20px auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1, h2, h3 { color: #212529; border-bottom: 2px solid #e9ecef; padding-bottom: 10px; }
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; }
+        .card { border: 1px solid #dee2e6; border-radius: 8px; padding: 20px; }
+        .card h3 { margin-top: 0; }
+        .prediction-label { font-size: 1.5em; font-weight: bold; color: #007bff; text-align: center; margin-bottom: 5px; }
+        .confidence-text { text-align: center; font-size: 1.1em; color: #555; margin-top: 0; }
+        img { max-width: 100%; height: auto; border-radius: 5px; }
+        .probabilities-list { list-style-type: none; padding: 0; }
+        .probabilities-list li { background: #f8f9fa; margin-bottom: 8px; padding: 10px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
+        .prob-bar { background-color: #007bff; height: 100%; border-radius: 3px; }
+        .prob-container { width: 50%; background-color: #e9ecef; border-radius: 3px; }
+        .back-link { display: inline-block; margin-top: 30px; padding: 10px 15px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 5px; }
+        .back-link:hover { background-color: #5a6268; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Prediction Results</h1>
+        <div class="grid-container">
+            <div class="card">
+                <h3>Original Image</h3>
+                <img src="data:{{ mime_type }};base64,{{ original_image_b64 }}" alt="Uploaded Image">
+            </div>
+
+            <div class="card">
+                <h3>Baseline CNN Model</h3>
+                <p>A simple, scratch-built convolutional neural network.</p>
+                <p class="prediction-label">{{ prediction_baseline }}</p>
+                <p class="confidence-text">Confidence: {{ '%.2f'|format(confidence_baseline * 100) }}%</p>
+            </div>
+
+            <div class="card">
+                <h3>ResNet50 (Fine-Tuned) Model</h3>
+                <p>Prediction using Monte Carlo Dropout for uncertainty estimation.</p>
+                <p class="prediction-label">{{ mc_prediction }}</p>
+                <p class="confidence-text">MC Dropout Confidence: {{ '%.2f'|format(mc_probability * 100) }}%</p>
+                
+                <h4>Top 5 Mean Probabilities:</h4>
+                <ul class="probabilities-list">
+                    {% for class_name, prob in top5_probabilities %}
+                    <li>
+                        <span>{{ class_name.replace('_', ' ')|title }}</span>
+                        <div class="prob-container">
+                             <div class="prob-bar" style="width: {{ prob }}%;"></div>
+                        </div>
+                        <span>{{ '%.2f'|format(prob) }}%</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <h2>Model Interpretability (Saliency Maps from ResNet50)</h2>
+        <p>These heatmaps highlight the pixels the model focused on to make its prediction. Red areas indicate high importance.</p>
+        <div class="grid-container">
+            <div class="card">
+                <h3>Grad-CAM</h3>
+                <img src="data:image/png;base64,{{ grad_cam_viz_b64 }}" alt="Grad-CAM Visualization">
+            </div>
+            <div class="card">
+                <h3>NormGrad</h3>
+                <img src="data:image/png;base64,{{ normgrad_viz_b64 }}" alt="NormGrad Visualization">
+            </div>
+        </div>
+        <a href="/" class="back-link">&larr; Upload Another Image</a>
+    </div>
+</body>
+</html>
