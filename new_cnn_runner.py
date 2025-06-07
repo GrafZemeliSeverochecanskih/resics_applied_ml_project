@@ -67,9 +67,9 @@ class NewCnnRunner:
             test_accuracy (float): The accuracy of the model on the test set.
         """
         results = {
-            "train_accuracy": training_history.get('train_acc', [])[-1],
-            "val_accuracy": training_history.get('val_acc', [])[-1],
-            "test_accuracy": test_accuracy
+            "train_accuracy": 100 * training_history.get('train_acc', [])[-1],
+            "val_accuracy": 100 * training_history.get('val_acc', [])[-1],
+            "test_accuracy": 100 * test_accuracy
         }
         
         results_filepath = self.__output_dir / "accuracy_results.json"

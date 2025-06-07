@@ -1,103 +1,148 @@
-import fastapi
-from fastapi import File, UploadFile, HTTPException
-from fastapi.responses import HTMLResponse
-import torch
-import uvicorn
-from pathlib import Path
-import shutil
-import tempfile
+import base64
 import io
+import json
+from pathlib import Path
 
+import torch
+from fastapi import FastAPI, File, Request, UploadFile, HTTPException
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
+from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel, Field
+from PIL import Image
+import torch
 from upload_model.model import UploadModel
+from upload_baseline_model.baseline_model import UploadCNN
 
-app = fastapi.FastAPI()
-MODEL_WEIGHTS_PATH = r"D:\project_images — копия\resics_applied_ml_project\resnet_50_custom_model_weights.pth"
+BASE_DIR = Path(__file__).resolve().parent
+MODEL_WEIGHTS_PATH = BASE_DIR /"resnet_50.pth"
+BASELINE_MODEL_WEIGHTS_PATH = BASE_DIR / "my_cnn_baseline.pth"
+ACCURACY_PLOT_PATH = BASE_DIR / "accuracy_curves.png"
+LOSS_PLOT_PATH = BASE_DIR / "loss_curves.png"
 
-if not Path(MODEL_WEIGHTS_PATH).is_file():
-    print(f" WARNING: Model weights file not found at {MODEL_WEIGHTS_PATH}")
-    print(" Please ensure the MODEL_WEIGHTS_PATH in your script is correct.")
-model = None
+BASELINE_ACCURACY_PATH = BASE_DIR / "accuracy_results.json"
+TRANSFER_ACCURACY_PATH = BASE_DIR / "accuracies_summary.json"
+
+app = FastAPI(
+    title="Image Classification API",
+    description="Compares a baseline CNN and a fine-tuned ResNet50 model using MC Dropout for inference.",
+    version="1.1.0"
+)
+
+templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+
+class AccuracyResponse(BaseModel):
+    """Defines the structure for the accuracies JSON response."""
+    baseline_model_accuracy: float = Field(..., example=0.32, description="Test accuracy of the baseline CNN model.")
+    resnet_model_accuracy: float = Field(..., example=0.91, description="Test accuracy of the fine-tuned ResNet50 model.")
+
 try:
-    model = UploadModel(weights_path=MODEL_WEIGHTS_PATH)
-    print(" Model loaded successfully.")
+    transfer_model = UploadModel(weights_path=str(MODEL_WEIGHTS_PATH))
+    baseline_model = UploadCNN(model_weights_path=str(BASELINE_MODEL_WEIGHTS_PATH))
+except FileNotFoundError as e:
+    print(f"FATAL ERROR: Could not load model weights. {e}")
+    transfer_model = None
+    baseline_model = None
 except Exception as e:
-    print(f"Error loading model: {e}")
-    print("Ensure your model.py and weights path are correct and all dependencies are installed.")
-    model = None
+    print(f"An unexpected error occurred during model loading: {e}")
+    transfer_model = None
+    baseline_model = None
 
-@app.get("/", response_class=HTMLResponse)
-async def get_upload_form():
-    try:
-        html_file_path = Path(__file__).parent / "index.html"
-        with open(html_file_path, "r", encoding="utf-8") as f:
-            html_content = f.read()
-        return HTMLResponse(content=html_content, status_code=200)
-    except FileNotFoundError:
-        return HTMLResponse(content="<h1>Error: index.html not found</h1><p>Please ensure index.html is in the same directory as the server script.</p>", status_code=500)
-    except Exception as e:
-        return HTMLResponse(content=f"<h1>An error occurred</h1><p>{str(e)}</p>", status_code=500)
+@app.get("/", response_class=HTMLResponse, summary="Image Upload Page")
+async def get_upload_page(request: Request):
+    """Serves the main HTML page with a form for uploading an image."""
+    return templates.TemplateResponse("upload.html", {"request": request})
 
-@app.post("/predict/")
-async def predict_image_original(image_file: UploadFile = File(...)):
-    if model is None:
-        raise HTTPException(status_code=500, detail="Model not loaded. Check server logs.")
 
-    if not image_file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Invalid file type. Please upload an image.")
-
-    tmp_file_path = None
-    try:
-        suffix = Path(image_file.filename).suffix or ".jpg"
-        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
-            shutil.copyfileobj(image_file.file, tmp_file)
-            tmp_file_path = Path(tmp_file.name)
-        
-        predicted_class_name = model.predict_single_image(image_path=tmp_file_path)
-        
-        return {"filename": image_file.filename, "prediction": predicted_class_name}
-
-    except Exception as e:
-        print(f"Error during original prediction: {e}")
-        raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
-    finally:
-        if tmp_file_path and tmp_file_path.exists():
-            tmp_file_path.unlink()
-        await image_file.close()
-
-@app.post("/predict_and_explain/")
-async def predict_image_and_explain(image_file: UploadFile = File(...)):
+@app.post("/predict", response_class=HTMLResponse, summary="Process Image and Show Results")
+async def handle_prediction(request: Request, file: UploadFile = File(..., description="Image to classify")):
     """
-    Receives an image, uses the UploadModel's predict_and_explain method,
-    and returns prediction, probabilities, and saliency map.
+    Accepts an uploaded image, gets predictions from both models (using MC Dropout for the main one),
+    generates saliency maps, and renders the results on an HTML page.
     """
-    if model is None:
-        raise HTTPException(status_code=500, detail="Model not loaded. Check server logs.")
+    if not transfer_model or not baseline_model:
+        raise HTTPException(status_code=503, detail="Models are not available due to a loading error.")
 
-    if not image_file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Invalid file type. Please upload an image.")
+    image_bytes = await file.read()
 
     try:
-        image_bytes = await image_file.read()
-        
-        predicted_class, class_probs, saliency_b64 = model.predict_and_explain(image_bytes=image_bytes)
-        
-        return {
-            "filename": image_file.filename,
-            "prediction": predicted_class,
-            "probabilities": class_probs,
-            "saliency_map_base64": saliency_b64
-        }
+        mc_prediction, mc_probability, _ = transfer_model.predict_with_mc_dropout(image_bytes, num_samples=25)
 
-    except AttributeError as e:
-        print(f"AttributeError during predict_and_explain: {e}")
-        print("Ensure 'predict_and_explain' method and its requirements (e.g., saliency generator) are correctly implemented in UploadModel.")
-        raise HTTPException(status_code=500, detail=f"Model method error: {str(e)}. Check server logs and model.py.")
+        _, top5_probs, grad_cam_b64, normgrad_b64 = transfer_model.predict_and_explain(image_bytes)
+
     except Exception as e:
-        print(f"Error during predict_and_explain: {e}")
-        raise HTTPException(status_code=500, detail=f"Error processing image for explanation: {str(e)}")
-    finally:
-        await image_file.close()
+        raise HTTPException(status_code=500, detail=f"Error during ResNet50 prediction: {e}")
+
+    try:
+        image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        image_tensor = baseline_model.transform(image).unsqueeze(0).to(baseline_model._UploadCNN__device)
+
+        with torch.inference_mode():
+            output_logits = baseline_model.model(image_tensor)
+            output_probs = torch.softmax(output_logits, dim=1)
+            confidence, pred_index = torch.max(output_probs, dim=1)
+
+        pred_baseline = baseline_model._UploadCNN__class_names[pred_index.item()]
+        confidence_baseline = confidence.item()
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error during Baseline CNN prediction: {e}")
+
+    original_image_b64 = base64.b64encode(image_bytes).decode("utf-8")
+
+    context = {
+        "request": request,
+        "mc_prediction": mc_prediction,
+        "mc_probability": mc_probability,
+        "top5_probabilities": top5_probs,
+        "prediction_baseline": pred_baseline,
+        "confidence_baseline": confidence_baseline,
+        "original_image_b64": original_image_b64,
+        "grad_cam_viz_b64": grad_cam_b64,
+        "normgrad_viz_b64": normgrad_b64,
+        "mime_type": file.content_type
+    }
+
+    return templates.TemplateResponse("results.html", context)
 
 
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+@app.get("/metrics/accuracies", response_class=JSONResponse, summary="Get Full Model Accuracy Summaries")
+async def get_accuracies():
+    """
+    Returns a JSON object containing the full content of the accuracy
+    summary files for both models.
+    """
+    try:
+        with open(BASELINE_ACCURACY_PATH, 'r') as f:
+            baseline_data = json.load(f)
+        with open(TRANSFER_ACCURACY_PATH, 'r') as f:
+            transfer_data = json.load(f)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=f"Accuracy summary file not found: {e.filename}")
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=500, detail="Error decoding one of the accuracy JSON files.")
+
+    full_accuracy_data = {
+        "baseline_model_summary": baseline_data,
+        "resnet_model_accuracy": transfer_data
+    }
+    return JSONResponse(content=full_accuracy_data)
+
+
+@app.get("/metrics/accuracy-plot", response_class=FileResponse, summary="Get Accuracy Curve Plot")
+async def get_accuracy_plot():
+    """
+    Returns the pre-generated accuracy curve plot as a PNG image.
+    """
+    if not ACCURACY_PLOT_PATH.is_file():
+        raise HTTPException(status_code=404, detail="Accuracy plot image not found.")
+    return FileResponse(ACCURACY_PLOT_PATH, media_type="image/png")
+
+
+@app.get("/metrics/loss-plot", response_class=FileResponse, summary="Get Loss Curve Plot")
+async def get_loss_plot():
+    """
+    Returns the pre-generated loss curve plot as a PNG image.
+    """
+    if not LOSS_PLOT_PATH.is_file():
+        raise HTTPException(status_code=404, detail="Loss plot image not found.")
+    return FileResponse(LOSS_PLOT_PATH, media_type="image/png")
