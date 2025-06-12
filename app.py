@@ -14,7 +14,7 @@ from upload_model.model import UploadModel
 from upload_baseline_model.baseline_model import UploadCNN
 
 BASE_DIR = Path(__file__).resolve().parent
-MODEL_WEIGHTS_PATH = BASE_DIR /"resnet_50.pth"
+MODEL_WEIGHTS_PATH = BASE_DIR /"resnet_50_weight_decay.pth"
 BASELINE_MODEL_WEIGHTS_PATH = BASE_DIR / "my_cnn_baseline.pth"
 ACCURACY_PLOT_PATH = BASE_DIR / "accuracy_curves.png"
 LOSS_PLOT_PATH = BASE_DIR / "loss_curves.png"
