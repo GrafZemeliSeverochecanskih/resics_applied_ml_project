@@ -49,7 +49,7 @@ class CNNBaselineModel:
             nn.Flatten(),
             nn.Linear(in_features=1, out_features=self.__num_classes)
         ).to(self.__device)
-        self._determine_fc_input_features()
+        self.__determine_fc_input_features()
 
         self.__optimizer = Adam(
             self.__model.parameters(),
@@ -57,7 +57,7 @@ class CNNBaselineModel:
         )
         print("CNNBaselineModel initialized successfully.")
 
-    def _get_sample_input_shape(self):
+    def __get_sample_input_shape(self):
         """Gets the shape of a sample input from the train_dataloader after transforms."""
         if not self.__train_dataloader:
             print("Warning: Train dataloader is not available. Falling back to default input shape.")
@@ -69,12 +69,12 @@ class CNNBaselineModel:
             print("Warning: Train dataloader is empty. Falling back to default input shape for FC layer calculation.")
             return self.__input_channels, 224, 224
 
-    def _determine_fc_input_features(self):
+    def __determine_fc_input_features(self):
         """
         Passes a dummy tensor (or a real sample) through the convolutional part
         to determine the input features for the fully connected layer.
         """
-        channels, height, width = self._get_sample_input_shape()
+        channels, height, width = self.__get_sample_input_shape()
         dummy_input = torch.randn(1, channels, height, width).to(self.__device)
         conv_part = nn.Sequential(*list(self.__model.children())[:-1])
 
