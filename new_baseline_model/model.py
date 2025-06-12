@@ -16,7 +16,26 @@ class CNNBaselineModel:
                  loss_fn: torch.nn.Module = nn.CrossEntropyLoss(),
                  num_filters: int = 16
                  ):
+        """CNNBaselineModel class constructor
 
+        Args:
+            data_handler (DataHandler): loads data for training and 
+            evaluation.
+            output_dir (str): directory where the files should be saved
+            filename (str, optional): name of the file with weights. 
+            Defaults to "cnn_baseline_model_weights".
+            epochs (int, optional): number of epochs needed ofr training. 
+            Defaults to 10.
+            learning_rate (float, optional): learning rate. 
+            Defaults to 0.001.
+            loss_fn (torch.nn.Module, optional): loss function for training. 
+            Defaults to nn.CrossEntropyLoss().
+            num_filters (int, optional): number of filters. 
+            Defaults to 16.
+
+        Raises:
+            ValueError: raised if there are no classes in data handler
+        """
         self.__device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"Using device: {self.__device}")
         self.__data_handler = data_handler
@@ -58,7 +77,11 @@ class CNNBaselineModel:
         print("CNNBaselineModel initialized successfully.")
 
     def __get_sample_input_shape(self):
-        """Gets the shape of a sample input from the train_dataloader after transforms."""
+        """This function returns the size of the input image.
+
+        Returns:
+            tupple: image sizes
+        """
         if not self.__train_dataloader:
             print("Warning: Train dataloader is not available. Falling back to default input shape.")
             return self.__input_channels, 224, 224
@@ -71,7 +94,7 @@ class CNNBaselineModel:
 
     def __determine_fc_input_features(self):
         """
-        Passes a dummy tensor (or a real sample) through the convolutional part
+        This function passes a dummy tensor (or a real sample) through the convolutional part
         to determine the input features for the fully connected layer.
         """
         channels, height, width = self.__get_sample_input_shape()
@@ -88,6 +111,15 @@ class CNNBaselineModel:
 
 
     def train_step(self, dataloader: torch.utils.data.DataLoader):
+        """This function implements a training step.
+
+        Args:
+            dataloader (torch.utils.data.DataLoader): this method implements
+            the training step functionality 
+
+        Returns:
+            tuple: train accuacy and loss
+        """
         self.__model.train()
         train_loss, train_acc = 0, 0
         for batch, (X, y) in enumerate(dataloader):
@@ -107,6 +139,15 @@ class CNNBaselineModel:
         return train_loss, train_acc
 
     def val_step(self, dataloader: torch.utils.data.DataLoader):
+        """This function implements a validation step.
+
+        Args:
+            dataloader (torch.utils.data.DataLoader): this method implements
+            the validation step functionality 
+
+        Returns:
+            tuple: validation accuacy and loss
+        """
         self.__model.eval()
         val_loss, val_acc = 0, 0
         with torch.inference_mode():
@@ -126,7 +167,11 @@ class CNNBaselineModel:
         return val_loss, val_acc
 
     def fit(self):
-        """Trains the model and saves the weights."""
+        """This function trains the model and save the weights.
+
+        Returns:
+            dict: results of the training process
+        """
         results = {"train_loss": [], "train_acc": [], "val_loss": [], "val_acc": []}
         print(f"Starting training for {self.__epochs} epochs on {self.__device}...")
         print(f"Model architecture: \n{self.__model}")
@@ -159,7 +204,11 @@ class CNNBaselineModel:
         return results
 
     def evaluate(self):
-        """Evaluates the model on the test dataset."""
+        """This method evaluates the model on the test dataset.
+
+        Returns:
+            tuple: test accuacy and loss
+        """
         print(f"Evaluating model on test data using {self.__device}...")
         self.__model.eval()
         test_loss, test_acc = 0, 0
@@ -170,8 +219,11 @@ class CNNBaselineModel:
                 loss = self.__loss_fn(outputs_logits, y)
                 test_loss += loss.item()
 
-                pred_labels = torch.argmax(torch.softmax(outputs_logits, dim=1), dim=1)
-                test_acc += (pred_labels == y).sum().item() / len(outputs_logits)
+                pred_labels = torch.argmax(
+                    torch.softmax(outputs_logits, dim=1), dim=1
+                    )
+                test_acc += (pred_labels == y).sum().item() \
+                / len(outputs_logits)
 
         test_loss /= len(self.__test_dataloader)
         test_acc /= len(self.__test_dataloader)
@@ -179,7 +231,14 @@ class CNNBaselineModel:
         return test_loss, test_acc
 
     def predict(self, image_tensor: torch.Tensor):
-        """Makes a prediction on a single image tensor."""
+        """This model makes a prediction for an image.
+
+        Args:
+            image_tensor (torch.Tensor): image in form of a tensor
+
+        Returns:
+            tuple: class name and softmax probability
+        """
         self.__model.eval()
         with torch.inference_mode():
             image_tensor = image_tensor.to(self.__device)
