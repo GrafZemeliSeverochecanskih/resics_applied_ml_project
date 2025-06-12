@@ -25,6 +25,7 @@ class NewModel(torch.nn.Sequential):
                  batch_size = 32,
                  transform: transforms.Compose = None,
                  learning_rate: float = 0.001,
+                 weight_decay = 0.01,
                  loss_fn: torch.nn.Module = nn.CrossEntropyLoss(),
                  dropout_rate: float = 0.5
                  ):
@@ -65,10 +66,12 @@ class NewModel(torch.nn.Sequential):
         self.__test_dataloader = data_hander.test_dataloader
 
         self.__lr = learning_rate
-        self.__optimizer = Adam(
+        self.__weight_decay = weight_decay
+        self.__optimizer = AdamW(
             list(filter(lambda p: p.requires_grad, 
                         self.__model.parameters())),
-            lr=self.__lr
+            lr=self.__lr,
+            weight_decay=self.__weight_decay
             )
         
         self.__loss_fn = loss_fn
