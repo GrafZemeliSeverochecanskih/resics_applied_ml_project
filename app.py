@@ -14,7 +14,7 @@ from upload_model.model import UploadModel
 from upload_baseline_model.baseline_model import UploadCNN
 
 BASE_DIR = Path(__file__).resolve().parent
-MODEL_WEIGHTS_PATH = BASE_DIR /"resnet_50.pth"
+MODEL_WEIGHTS_PATH = BASE_DIR /"resnet_50_weight_decay.pth"
 BASELINE_MODEL_WEIGHTS_PATH = BASE_DIR / "my_cnn_baseline.pth"
 ACCURACY_PLOT_PATH = BASE_DIR / "accuracy_curves.png"
 LOSS_PLOT_PATH = BASE_DIR / "loss_curves.png"
@@ -47,13 +47,19 @@ except Exception as e:
     transfer_model = None
     baseline_model = None
 
-@app.get("/", response_class=HTMLResponse, summary="Image Upload Page")
+@app.get("/", response_class=HTMLResponse, summary="Image Upload Page", 
+         description="Serves the main HTML page containing a form to upload an image for classification by both models.")
 async def get_upload_page(request: Request):
     """Serves the main HTML page with a form for uploading an image."""
     return templates.TemplateResponse("upload.html", {"request": request})
 
 
-@app.post("/predict", response_class=HTMLResponse, summary="Process Image and Show Results")
+@app.post("/predict", response_class=HTMLResponse, summary="Process Image and Show Results",
+          description=(
+              "Accepts an uploaded image and returns an HTML page with predictions from both models: "
+              "the ResNet50 model using MC Dropout for uncertainty estimation, and a baseline CNN model. "
+              "Includes class predictions, probabilities, and saliency map visualizations."
+          ))
 async def handle_prediction(request: Request, file: UploadFile = File(..., description="Image to classify")):
     """
     Accepts an uploaded image, gets predictions from both models (using MC Dropout for the main one),
@@ -105,7 +111,12 @@ async def handle_prediction(request: Request, file: UploadFile = File(..., descr
     return templates.TemplateResponse("results.html", context)
 
 
-@app.get("/metrics/accuracies", response_class=JSONResponse, summary="Get Full Model Accuracy Summaries")
+@app.get("/metrics/accuracies", response_class=JSONResponse, summary="Get Full Model Accuracy Summaries",
+         description=(
+             "Returns a JSON object containing detailed accuracy summary information for both the baseline CNN "
+             "and the fine-tuned ResNet50 models. This includes test accuracies and other evaluation metrics "
+             "loaded from JSON summary files."
+         ))
 async def get_accuracies():
     """
     Returns a JSON object containing the full content of the accuracy
@@ -128,7 +139,8 @@ async def get_accuracies():
     return JSONResponse(content=full_accuracy_data)
 
 
-@app.get("/metrics/accuracy-plot", response_class=FileResponse, summary="Get Accuracy Curve Plot")
+@app.get("/metrics/accuracy-plot", response_class=FileResponse, summary="Get Accuracy Curve Plot",
+         description="Returns a PNG image of the pre-generated accuracy curve plot showing model performance over training epochs.")
 async def get_accuracy_plot():
     """
     Returns the pre-generated accuracy curve plot as a PNG image.
@@ -138,7 +150,8 @@ async def get_accuracy_plot():
     return FileResponse(ACCURACY_PLOT_PATH, media_type="image/png")
 
 
-@app.get("/metrics/loss-plot", response_class=FileResponse, summary="Get Loss Curve Plot")
+@app.get("/metrics/loss-plot", response_class=FileResponse, summary="Get Loss Curve Plot",
+         description="Returns a PNG image of the pre-generated loss curve plot visualizing model loss over training epochs.")
 async def get_loss_plot():
     """
     Returns the pre-generated loss curve plot as a PNG image.

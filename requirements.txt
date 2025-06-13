@@ -8,3 +8,4 @@ torchvision
 torchinfo
 matplotlib
 tqdm
+typing_extensions
